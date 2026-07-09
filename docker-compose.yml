@@ -32,6 +32,11 @@ services:
     ports:
       - "8000:8000"
 
+    volumes:
+      - ./backend:/app
+      - ./vision/output:/app/static/output
+      - ./vision/videos:/app/static/videos
+
     depends_on:
       - postgres
       - redis
@@ -43,6 +48,7 @@ services:
 
     volumes:
       - ./vision:/app
+      - ./vision/output:/app/output
 
     depends_on:
       - backend

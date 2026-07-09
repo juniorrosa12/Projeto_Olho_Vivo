@@ -3,6 +3,9 @@ from datetime import datetime
 from app.database.database import SessionLocal
 from app.models.event import Event
 
+FILIAL_ID = "FILIAL_027"
+CAMERA_ID = "CAM01"
+
 
 class EventService:
 
@@ -17,8 +20,8 @@ class EventService:
                 db_event = Event(
                     event_type="person",
                     track_id=event.id,
-                    camera_id="CAM01",
-                    filial_id="FILIAL_001",
+                    camera_id=CAMERA_ID,
+                    filial_id=FILIAL_ID,
                     confidence=1.0,
                     enter_time=datetime.now(),
                     status="inside",
