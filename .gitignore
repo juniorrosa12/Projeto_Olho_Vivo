@@ -31,3 +31,12 @@ models/
 # macOS
 .DS_Store
 
+# Projeto Olho Vivo
+vision/output/
+vision/weights/
+backend/static/output/
+
+frontend/dist/
+
+*.sqlite3
+*.db
