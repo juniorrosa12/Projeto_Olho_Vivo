@@ -14,87 +14,90 @@ export default function Dashboard() {
   });
 
   async function loadDashboard() {
-
     try {
-
       const { data } = await api.get("/events/dashboard");
-
       setDashboard(data);
-
     } catch (err) {
-
       console.error(err);
-
     }
-
   }
 
   useEffect(() => {
-
     loadDashboard();
-
     const timer = setInterval(loadDashboard, 2000);
-
     return () => clearInterval(timer);
-
   }, []);
 
   return (
-
     <div
       style={{
-        background: "#181a20",
+        background: "#111827",
         minHeight: "100vh",
-        color: "white",
-        padding: 20,
+        color: "#fff",
+        padding: 24,
         fontFamily: "Arial",
       }}
     >
-
-      <h1
+      <div
         style={{
-          textAlign: "center",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
           marginBottom: 20,
         }}
       >
-        PROJETO OLHO VIVO
-      </h1>
+        <div>
+          <h1 style={{ margin: 0 }}>Projeto Olho Vivo</h1>
+          <span style={{ color: "#9ca3af" }}>
+            FILIAL_027 • CAM01
+          </span>
+        </div>
+
+        <div
+          style={{
+            background: "#16a34a",
+            padding: "8px 16px",
+            borderRadius: 20,
+            fontWeight: "bold",
+          }}
+        >
+          IA ONLINE
+        </div>
+      </div>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "60% 40%",
+          gridTemplateColumns: "68% 32%",
           gap: 20,
         }}
       >
-
-        <video
-          src="http://192.168.3.77:8000/static/pessoas.mp4"
-          autoPlay
-          muted
-          loop
-          controls
+        <div
           style={{
-            width: "100%",
-            borderRadius: 10,
-            background: "#000",
+            background: "#1f2937",
+            borderRadius: 12,
+            padding: 10,
           }}
-        />
-
-        <div>
-
-          <StatsCards stats={dashboard} />
-
-          <EventTable
-            events={dashboard.last_events}
+        >
+          <video
+            src="http://192.168.3.77:8000/static/videos/pessoas.mp4"
+            autoPlay
+            muted
+            loop
+            controls
+            style={{
+              width: "100%",
+              borderRadius: 8,
+            }}
           />
-
         </div>
 
+        <div>
+          <StatsCards stats={dashboard} />
+          <div style={{ height: 20 }} />
+          <EventTable events={dashboard.last_events} />
+        </div>
       </div>
-
     </div>
-
   );
-
 }

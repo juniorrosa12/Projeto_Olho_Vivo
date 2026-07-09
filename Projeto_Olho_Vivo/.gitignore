@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# Logs
+logs/
+
+# Environment
+.env
+
+# VS Code
+.vscode/
+
+# Docker
+*.log
+
+# Dataset
+datasets/
+
+# Models
+models/
+
+# Cache
+.cache/
+
+# macOS
+.DS_Store
+
+# Projeto Olho Vivo
+vision/output/
+vision/weights/
+backend/static/output/
+
+frontend/dist/
+
+*.sqlite3
+*.db

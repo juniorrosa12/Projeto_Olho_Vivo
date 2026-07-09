@@ -1,42 +1,70 @@
 export default function EventTable({ events }) {
   return (
-    <table
+    <div
       style={{
-        width: "100%",
-        background: "#23252d",
-        borderCollapse: "collapse",
-        color: "white",
-        borderRadius: 10,
-        overflow: "hidden",
+        background: "#1f2937",
+        borderRadius: 12,
+        padding: 15,
+        marginTop: 20,
       }}
     >
-      <thead>
-        <tr style={{ background: "#2f333d" }}>
-          <th style={{ padding: 10 }}>Evento</th>
-          <th style={{ padding: 10 }}>Track</th>
-          <th style={{ padding: 10 }}>Data</th>
-        </tr>
-      </thead>
+      <h3
+        style={{
+          marginTop: 0,
+          marginBottom: 15,
+        }}
+      >
+        Últimos Eventos
+      </h3>
 
-      <tbody>
-        {events.map((e) => (
-          <tr
-            key={e.id}
-            style={{
-              background:
-                e.event_type === "person_enter"
-                  ? "#17381d"
-                  : "#3b1d1d",
-            }}
-          >
-            <td style={{ padding: 8 }}>{e.event_type}</td>
-            <td style={{ padding: 8 }}>{e.track_id}</td>
-            <td style={{ padding: 8 }}>
-              {new Date(e.event_time).toLocaleString("pt-BR")}
-            </td>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          color: "white",
+        }}
+      >
+        <thead>
+          <tr>
+            <th style={{ padding: 10, textAlign: "left" }}>Evento</th>
+            <th style={{ padding: 10, textAlign: "center" }}>Track</th>
+            <th style={{ padding: 10, textAlign: "center" }}>Horário</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+
+        <tbody>
+          {events.map((e) => (
+            <tr
+              key={e.id}
+              style={{
+                borderTop: "1px solid #374151",
+              }}
+            >
+              <td style={{ padding: 10 }}>
+                {e.event_type}
+              </td>
+
+              <td
+                style={{
+                  padding: 10,
+                  textAlign: "center",
+                }}
+              >
+                {e.track_id}
+              </td>
+
+              <td
+                style={{
+                  padding: 10,
+                  textAlign: "center",
+                }}
+              >
+                {new Date(e.event_time).toLocaleTimeString("pt-BR")}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

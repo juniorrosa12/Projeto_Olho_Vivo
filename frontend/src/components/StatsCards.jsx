@@ -2,21 +2,29 @@ function Card({ title, value, color }) {
   return (
     <div
       style={{
-        background: "#23252d",
-        borderLeft: `8px solid ${color}`,
-        borderRadius: 10,
+        background: "#1f2937",
+        borderRadius: 12,
         padding: 20,
-        color: "white",
-        boxShadow: "0 0 10px rgba(0,0,0,.3)"
+        borderTop: `5px solid ${color}`,
+        boxShadow: "0 8px 20px rgba(0,0,0,.35)",
       }}
     >
-      <div style={{ fontSize: 18 }}>{title}</div>
+      <div
+        style={{
+          color: "#9ca3af",
+          fontSize: 14,
+          marginBottom: 10,
+          textTransform: "uppercase",
+        }}
+      >
+        {title}
+      </div>
 
       <div
         style={{
-          fontSize: 42,
+          fontSize: 38,
           fontWeight: "bold",
-          marginTop: 15
+          color: "#ffffff",
         }}
       >
         {value}
@@ -32,13 +40,31 @@ export default function StatsCards({ stats }) {
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
         gap: 15,
-        marginBottom: 20
       }}
     >
-      <Card title="Pessoas" value={stats.people_now} color="#00d26a" />
-      <Card title="Entradas" value={stats.entries} color="#0094ff" />
-      <Card title="Saídas" value={stats.exits} color="#ff4444" />
-      <Card title="Pendentes" value={stats.pending} color="#ffb300" />
+      <Card
+        title="Pessoas"
+        value={stats.people_now}
+        color="#22c55e"
+      />
+
+      <Card
+        title="Entradas"
+        value={stats.entries}
+        color="#3b82f6"
+      />
+
+      <Card
+        title="Saídas"
+        value={stats.exits}
+        color="#ef4444"
+      />
+
+      <Card
+        title="Eventos"
+        value={stats.pending}
+        color="#f59e0b"
+      />
     </div>
   );
 }
