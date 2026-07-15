@@ -1,89 +1,34 @@
-import time
-import cv2
-import numpy as np
-
-from loguru import logger
-
-from src.services.backend_client import BackendClient
-from src.config.roi import ROI
+from src.analyzers.person_analyzer import PersonAnalyzer
+from src.analyzers.cell_phone_analyzer import CellPhoneAnalyzer
+from src.dispatcher.event_dispatcher import EventDispatcher
 
 
 class RuleEngine:
 
     def __init__(self):
 
-        self.backend = BackendClient()
-        self.people = {}
-        self.timeout = 2
+        self.person = PersonAnalyzer()
+        self.phone = CellPhoneAnalyzer()
+        self.dispatcher = EventDispatcher()
 
-    def inside_roi(self, bbox):
+    def process(self, frame, detections):
 
-        x1, y1, x2, y2 = bbox
+        people = [
+            d
+            for d in detections
+            if d["class"] == "person"
+        ]
 
-        cx = (x1 + x2) // 2
-        cy = (y1 + y2) // 2
+        phones = [
+            d
+            for d in detections
+            if d["class"] == "cell phone"
+        ]
 
-        for name, poly in ROI.items():
+        events = self.person.analyze(people)
 
-            if cv2.pointPolygonTest(
-                np.array(poly, np.int32),
-                (cx, cy),
-                False,
-            ) >= 0:
-
-                return name
-
-        return None
-
-    def process(self, detections):
-
-        now = time.time()
-
-        visible = set()
-
-        people = []
-        phones = []
-
-        for det in detections:
-
-            if det["class"] == "person":
-                people.append(det)
-
-            elif det["class"] == "cell phone":
-                phones.append(det)
-
-        for det in people:
-
-            pid = det["id"]
-
-            visible.add(pid)
-
-            roi = self.inside_roi(det["bbox"])
-
-            if pid not in self.people:
-
-                self.people[pid] = {
-                    "enter": now,
-                    "last": now,
-                    "roi": roi,
-                    "bbox": det["bbox"],
-                }
-
-                logger.success(f"ENTER {pid}")
-
-                self.backend.send_event({
-                    "type": "person_enter",
-                    "id": pid
-                })
-
-            else:
-
-                self.people[pid]["last"] = now
-                self.people[pid]["bbox"] = det["bbox"]
-
-        #
-        # Detecta celular dentro da pessoa
-        #
+        for event in events:
+            self.dispatcher.dispatch(event)
 
         for phone in phones:
 
@@ -94,38 +39,13 @@ class RuleEngine:
                 x1, y1, x2, y2 = person["bbox"]
 
                 if (
-                    px1 >= x1 and
-                    py1 >= y1 and
-                    px2 <= x2 and
-                    py2 <= y2
+                    px1 >= x1
+                    and py1 >= y1
+                    and px2 <= x2
+                    and py2 <= y2
                 ):
 
-                    logger.warning(
-                        f"CELULAR | Pessoa {person['id']}"
-                    )
+                    event = self.phone.analyze(person, phone)
 
-        #
-        # Exit
-        #
-
-        remove = []
-
-        for pid, info in self.people.items():
-
-            if pid in visible:
-                continue
-
-            if now - info["last"] >= self.timeout:
-
-                logger.warning(f"EXIT {pid}")
-
-                self.backend.send_event({
-                    "type": "person_exit",
-                    "id": pid
-                })
-
-                remove.append(pid)
-
-        for pid in remove:
-
-            del self.people[pid]
+                    if event:
+                        self.dispatcher.dispatch(event)

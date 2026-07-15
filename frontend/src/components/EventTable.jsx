@@ -2,16 +2,17 @@ export default function EventTable({ events }) {
   return (
     <div
       style={{
+        marginTop: 20,
         background: "#1f2937",
         borderRadius: 12,
         padding: 15,
-        marginTop: 20,
       }}
     >
       <h3
         style={{
-          marginTop: 0,
+          margin: 0,
           marginBottom: 15,
+          color: "#fff",
         }}
       >
         Últimos Eventos
@@ -20,45 +21,24 @@ export default function EventTable({ events }) {
       <table
         style={{
           width: "100%",
+          color: "#fff",
           borderCollapse: "collapse",
-          color: "white",
         }}
       >
         <thead>
           <tr>
-            <th style={{ padding: 10, textAlign: "left" }}>Evento</th>
-            <th style={{ padding: 10, textAlign: "center" }}>Track</th>
-            <th style={{ padding: 10, textAlign: "center" }}>Horário</th>
+            <th>Evento</th>
+            <th>ID</th>
+            <th>Horário</th>
           </tr>
         </thead>
 
         <tbody>
           {events.map((e) => (
-            <tr
-              key={e.id}
-              style={{
-                borderTop: "1px solid #374151",
-              }}
-            >
-              <td style={{ padding: 10 }}>
-                {e.event_type}
-              </td>
-
-              <td
-                style={{
-                  padding: 10,
-                  textAlign: "center",
-                }}
-              >
-                {e.track_id}
-              </td>
-
-              <td
-                style={{
-                  padding: 10,
-                  textAlign: "center",
-                }}
-              >
+            <tr key={e.id}>
+              <td>{e.event_type}</td>
+              <td>{e.track_id}</td>
+              <td>
                 {new Date(e.event_time).toLocaleTimeString("pt-BR")}
               </td>
             </tr>

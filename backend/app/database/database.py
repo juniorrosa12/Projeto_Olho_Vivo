@@ -13,3 +13,10 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
+
+from app.models.event import Event
+
+def create_database():
+
+    Base.metadata.create_all(bind=engine)
+

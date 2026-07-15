@@ -3,8 +3,9 @@ import time
 from loguru import logger
 
 from src.core.frame_processor import FrameProcessor
+from src.config.video import VIDEO_SOURCE
 
-VIDEO_PATH = "/app/videos/pessoas.mp4"
+VIDEO_PATH = VIDEO_SOURCE
 
 
 def main():

@@ -1,58 +1,107 @@
+from datetime import datetime
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 from sqlalchemy import desc
 
 from app.database.database import SessionLocal
 from app.models.event import Event
-from app.services.event_service import EventService
 
 router = APIRouter(
     prefix="/events",
-    tags=["Events"]
+    tags=["Events"],
 )
 
 
 class EventRequest(BaseModel):
-    type: str
-    id: int
 
+    event_type: str
 
-service = EventService()
+    filial: str
+
+    camera: str
+
+    track_id: int
+
+    confidence: float = 0
+
+    bbox: list = []
+
+    roi: str = ""
+
+    snapshot: str = ""
+
+    video: str = ""
+
+    status: str = "pending"
+
+    metadata: dict = {}
+
+    timestamp: str
 
 
 @router.post("/")
 def receive_event(event: EventRequest):
 
-    service.process(event)
+    db = SessionLocal()
 
-    return {"status": "ok"}
+    try:
+
+        db_event = Event(
+
+            event_type=event.event_type,
+
+            filial_id=event.filial,
+
+            camera_id=event.camera,
+
+            track_id=event.track_id,
+
+            confidence=event.confidence,
+
+            roi=event.roi,
+
+            bbox=event.bbox,
+
+            snapshot=event.snapshot,
+
+            video=event.video,
+
+            status=event.status,
+
+            event_time=datetime.fromisoformat(event.timestamp),
+
+            event_metadata=event.metadata,
+
+        )
+
+        db.add(db_event)
+
+        db.commit()
+
+        db.refresh(db_event)
+
+        return {
+            "status": "ok",
+            "id": db_event.id,
+        }
+
+    finally:
+
+        db.close()
 
 
 @router.get("/")
 def list_events(
     limit: int = 100,
-    event_type: str | None = None,
-    filial_id: str | None = None,
-    camera_id: str | None = None,
 ):
 
     db = SessionLocal()
 
     try:
 
-        query = db.query(Event)
-
-        if event_type:
-            query = query.filter(Event.event_type == event_type)
-
-        if filial_id:
-            query = query.filter(Event.filial_id == filial_id)
-
-        if camera_id:
-            query = query.filter(Event.camera_id == camera_id)
-
         events = (
-            query
+            db.query(Event)
             .order_by(desc(Event.id))
             .limit(limit)
             .all()
@@ -65,13 +114,17 @@ def list_events(
                 "track_id": e.track_id,
                 "camera_id": e.camera_id,
                 "filial_id": e.filial_id,
-                "event_time": e.event_time,
+                "confidence": e.confidence,
+                "snapshot": e.snapshot,
+                "video": e.video,
                 "status": e.status,
+                "event_time": e.event_time,
             }
             for e in events
         ]
 
     finally:
+
         db.close()
 
 
@@ -82,19 +135,25 @@ def dashboard():
 
     try:
 
-        entries = db.query(Event).filter(
-            Event.event_type == "person_enter"
-        ).count()
+        entries = (
+            db.query(Event)
+            .filter(Event.event_type == "person_enter")
+            .count()
+        )
 
-        exits = db.query(Event).filter(
-            Event.event_type == "person_exit"
-        ).count()
+        exits = (
+            db.query(Event)
+            .filter(Event.event_type == "person_exit")
+            .count()
+        )
 
-        pending = db.query(Event).filter(
-            Event.status == "pending"
-        ).count()
+        phones = (
+            db.query(Event)
+            .filter(Event.event_type == "cell_phone")
+            .count()
+        )
 
-        last_events = (
+        last = (
             db.query(Event)
             .order_by(desc(Event.id))
             .limit(10)
@@ -102,19 +161,30 @@ def dashboard():
         )
 
         return {
-            "people_now": entries - exits,
+
+            "people_now": max(entries - exits, 0),
+
             "entries": entries,
+
             "exits": exits,
-            "pending": pending,
+
+            "pending": phones,
+
             "last_events": [
+
                 {
                     "id": e.id,
                     "event_type": e.event_type,
                     "track_id": e.track_id,
+                    "camera_id": e.camera_id,
+                    "filial_id": e.filial_id,
                     "event_time": e.event_time,
                 }
-                for e in last_events
+
+                for e in last
+
             ],
+
         }
 
     finally:

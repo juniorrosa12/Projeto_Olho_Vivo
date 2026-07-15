@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 from ultralytics import YOLO
 from loguru import logger
@@ -22,68 +23,99 @@ class YOLODetector:
             source=frame,
             persist=True,
             tracker="bytetrack.yaml",
+            conf=0.25,
+            iou=0.45,
             verbose=False,
         )
+
+        detections = []
+
+        if len(results) == 0:
+            return frame, detections
 
         result = results[0]
 
         #
-        # Desenha ROI
+        # ROI
         #
 
-        for _, poly in ROI.items():
+        for filial in ROI.values():
+            for poly in filial.values():
 
-            cv2.polylines(
+                cv2.polylines(
+                    frame,
+                    [np.array(poly, dtype=np.int32)],
+                    True,
+                    (0,255,255),
+                    2
+                )
+
+        if result.boxes is None:
+
+            return frame, detections
+
+        ids = (
+            result.boxes.id.cpu().tolist()
+            if result.boxes.id is not None
+            else [None] * len(result.boxes)
+        )
+
+        classes = result.boxes.cls.cpu().tolist()
+        confs = result.boxes.conf.cpu().tolist()
+        boxes = result.boxes.xyxy.cpu().tolist()
+
+        for track_id, cls, conf, box in zip(
+            ids,
+            classes,
+            confs,
+            boxes
+        ):
+
+            x1,y1,x2,y2 = map(int,box)
+
+            class_name = result.names[int(cls)]
+
+            color=(0,255,0)
+
+            if class_name=="cell phone":
+                color=(0,0,255)
+
+            cv2.rectangle(
                 frame,
-                [cv2.UMat(__import__("numpy").array(poly, dtype="int32")).get()],
-                True,
-                (0, 255, 255),
-                2,
+                (x1,y1),
+                (x2,y2),
+                color,
+                2
             )
 
-        #
-        # Bounding boxes
-        #
+            label = class_name
 
-        if result.boxes.id is not None:
+            if track_id is not None:
+                label += f" #{int(track_id)}"
 
-            ids = result.boxes.id.cpu().tolist()
-            cls = result.boxes.cls.cpu().tolist()
-            conf = result.boxes.conf.cpu().tolist()
-            boxes = result.boxes.xyxy.cpu().tolist()
+            cv2.putText(
+                frame,
+                label,
+                (x1,max(25,y1-8)),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                color,
+                2
+            )
 
-            for track_id, c, score, box in zip(
-                ids,
-                cls,
-                conf,
-                boxes,
-            ):
+            detections.append({
 
-                x1, y1, x2, y2 = map(int, box)
+                "id": int(track_id) if track_id is not None else -1,
 
-                name = result.names[int(c)]
+                "class": class_name,
 
-                color = (0, 255, 0)
+                "confidence": float(conf),
 
-                if name == "cell phone":
-                    color = (0, 0, 255)
+                "bbox":[x1,y1,x2,y2]
 
-                cv2.rectangle(
-                    frame,
-                    (x1, y1),
-                    (x2, y2),
-                    color,
-                    2,
-                )
+            })
 
-                cv2.putText(
-                    frame,
-                    f"{name} #{int(track_id)}",
-                    (x1, y1 - 8),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6,
-                    color,
-                    2,
-                )
+        logger.info(f"Detecções: {len(detections)}")
 
-        return results
+        return frame, detections
+
