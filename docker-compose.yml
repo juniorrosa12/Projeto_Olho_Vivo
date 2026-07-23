@@ -35,7 +35,8 @@ services:
     volumes:
       - ./backend:/app
       - ./vision/output:/app/static/output
-      - ./vision/videos:/app/static/videos
+      - ./vision/output/snapshots:/app/static/snapshots
+      - ./vision/output/videos:/app/static/videos
 
     depends_on:
       - postgres
@@ -49,6 +50,24 @@ services:
     volumes:
       - ./vision:/app
       - ./vision/output:/app/output
+
+    depends_on:
+      - backend
+
+  frontend:
+    build: ./frontend
+    container_name: olhovivo_frontend
+    restart: unless-stopped
+
+    working_dir: /app
+
+    command: npm run dev -- --host 0.0.0.0
+
+    ports:
+      - "5173:5173"
+
+    volumes:
+      - ./frontend:/app
 
     depends_on:
       - backend

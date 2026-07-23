@@ -129,20 +129,6 @@ class FrameProcessor:
 
                     self.last_video=time.time()
 
-            cv2.polylines(
-
-                frame,
-
-                [np.array(self.roi,dtype=np.int32)],
-
-                True,
-
-                (0,255,255),
-
-                2
-
-            )
-
             people=len(
 
                 [

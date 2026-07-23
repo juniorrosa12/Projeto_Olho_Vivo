@@ -1,49 +1,36 @@
-import requests
-
 from dataclasses import asdict
 
+import requests
 from loguru import logger
 
 
 class BackendClient:
 
     def __init__(self):
-
-        self.url = "http://backend:8000/events/"
+        self.base_url = "http://backend:8000/events/"
 
     def send(self, event):
 
+        payload = asdict(event)
+
         try:
 
-            payload = asdict(event)
-
             response = requests.post(
-
-                self.url,
-
+                self.base_url,
                 json=payload,
-
-                timeout=5
-
+                timeout=5,
             )
 
             response.raise_for_status()
 
             logger.success(
-
-                f"AIEvent enviado: {payload['event_type']} | Track {payload['track_id']}"
-
+                f"Frame enviado com {len(event.detections)} detecções."
             )
 
             return True
 
         except Exception as e:
 
-            logger.error(e)
+            logger.exception(e)
 
             return False
-
-    def send_event(self, event):
-
-        return self.send(event)
-

@@ -7,6 +7,30 @@ from loguru import logger
 from src.config.roi import ROI
 
 
+MONITORED_CLASSES = {
+    "person",
+    "cell phone",
+    "backpack",
+    "handbag",
+}
+
+
+CLASS_NAMES = {
+    "person": "Pessoa",
+    "cell phone": "Celular",
+    "backpack": "Mochila/Sacola",
+    "handbag": "Bolsa",
+}
+
+
+COLORS = {
+    "person": (0, 255, 0),
+    "cell phone": (0, 0, 255),
+    "backpack": (255, 170, 0),
+    "handbag": (255, 0, 255),
+}
+
+
 class YOLODetector:
 
     def __init__(self, model_name="yolo11n.pt"):
@@ -35,10 +59,6 @@ class YOLODetector:
 
         result = results[0]
 
-        #
-        # ROI
-        #
-
         for filial in ROI.values():
             for poly in filial.values():
 
@@ -46,12 +66,11 @@ class YOLODetector:
                     frame,
                     [np.array(poly, dtype=np.int32)],
                     True,
-                    (0,255,255),
-                    2
+                    (0, 255, 255),
+                    2,
                 )
 
         if result.boxes is None:
-
             return frame, detections
 
         ids = (
@@ -64,31 +83,28 @@ class YOLODetector:
         confs = result.boxes.conf.cpu().tolist()
         boxes = result.boxes.xyxy.cpu().tolist()
 
-        for track_id, cls, conf, box in zip(
-            ids,
-            classes,
-            confs,
-            boxes
-        ):
-
-            x1,y1,x2,y2 = map(int,box)
+        for track_id, cls, conf, box in zip(ids, classes, confs, boxes):
 
             class_name = result.names[int(cls)]
 
-            color=(0,255,0)
+            if class_name not in MONITORED_CLASSES:
+                continue
 
-            if class_name=="cell phone":
-                color=(0,0,255)
+            x1, y1, x2, y2 = map(int, box)
+
+            color = COLORS[class_name]
+
+            display_name = CLASS_NAMES[class_name]
 
             cv2.rectangle(
                 frame,
-                (x1,y1),
-                (x2,y2),
+                (x1, y1),
+                (x2, y2),
                 color,
-                2
+                2,
             )
 
-            label = class_name
+            label = display_name
 
             if track_id is not None:
                 label += f" #{int(track_id)}"
@@ -96,26 +112,23 @@ class YOLODetector:
             cv2.putText(
                 frame,
                 label,
-                (x1,max(25,y1-8)),
+                (x1, max(25, y1 - 8)),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.6,
                 color,
-                2
+                2,
             )
 
-            detections.append({
+            detections.append(
+                {
+                    "id": int(track_id) if track_id is not None else -1,
+                    "class": class_name,
+                    "display_name": display_name,
+                    "confidence": float(conf),
+                    "bbox": [x1, y1, x2, y2],
+                }
+            )
 
-                "id": int(track_id) if track_id is not None else -1,
-
-                "class": class_name,
-
-                "confidence": float(conf),
-
-                "bbox":[x1,y1,x2,y2]
-
-            })
-
-        logger.info(f"Detecções: {len(detections)}")
+        logger.info(f"Detecções monitoradas: {len(detections)}")
 
         return frame, detections
-

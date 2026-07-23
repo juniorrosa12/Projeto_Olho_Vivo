@@ -10,34 +10,23 @@ class EventDispatcher:
 
         try:
 
-            requests.post(
+            response = requests.post(
 
                 BACKEND,
 
                 json={
 
                     "event_type": event.event_type,
-
                     "filial": event.filial,
-
                     "camera": event.camera,
-
                     "track_id": event.track_id,
-
                     "confidence": event.confidence,
-
                     "bbox": event.bbox,
-
                     "roi": event.roi,
-
                     "snapshot": event.snapshot,
-
                     "video": event.video,
-
                     "status": event.status,
-
                     "metadata": event.metadata,
-
                     "timestamp": event.timestamp,
 
                 },
@@ -46,12 +35,16 @@ class EventDispatcher:
 
             )
 
-            logger.success(
-
-                f"AIEvent enviado: {event.event_type} | Track {event.track_id}"
-
+            logger.info(
+                f"Backend respondeu {response.status_code}: {response.text}"
             )
 
-        except Exception as e:
+            response.raise_for_status()
 
-            logger.error(e)
+            logger.success(
+                f"AIEvent enviado: {event.event_type} | Track {event.track_id}"
+            )
+
+        except Exception:
+
+            logger.exception("Erro enviando evento")

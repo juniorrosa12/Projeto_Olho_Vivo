@@ -1,94 +1,197 @@
-import {useEffect,useState} from "react";
+import { useCallback, useEffect, useState } from "react";
+import {
+  Box,
+  Stack,
+  Grid,
+  Paper,
+  Typography,
+} from "@mui/material";
 import axios from "axios";
 
-const API=`${window.location.protocol}//${window.location.hostname}:8000`;
+import SnapshotViewer from "../components/validation/SnapshotViewer";
+import VideoPlayer from "../components/validation/VideoPlayer";
+import ValidationPanel from "../components/validation/ValidationPanel";
 
-export default function Validation(){
+const API = `${window.location.protocol}//${window.location.hostname}:8000`;
 
-    const[event,setEvent]=useState(null);
+export default function Validation() {
 
-    async function load(){
+  const [event, setEvent] = useState(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
 
-        const r=await axios.get(`${API}/validation/next`);
+  const [loading, setLoading] = useState(false);
 
-        setEvent(r.data);
+  const load = useCallback(async () => {
 
-    }
+    try {
 
-    async function approve(){
+      setLoading(true);
 
-        await axios.post(`${API}/validation/${event.id}/approve`);
+      const [eventRes, statsRes] = await Promise.all([
+        axios.get(`${API}/validation/next`),
+        axios.get(`${API}/validation/stats`),
+      ]);
 
-        load();
+      setEvent(eventRes.data);
+      setStats(statsRes.data);
 
-    }
+    } finally {
 
-    async function reject(){
-
-        await axios.post(`${API}/validation/${event.id}/reject`);
-
-        load();
-
-    }
-
-    useEffect(()=>{
-
-        load();
-
-    },[]);
-
-    if(!event){
-
-        return <h2>Nenhum evento pendente.</h2>;
+      setLoading(false);
 
     }
 
-    return(
+  }, []);
 
-        <div style={{padding:20}}>
+  const handleDecision = async (action) => {
 
-            <h1>Central de Validação</h1>
+    if (!event?.id) return;
 
-            <h2>{event.event_type}</h2>
+    try {
 
-            <p>Filial: {event.filial_id}</p>
+      setLoading(true);
 
-            <p>Câmera: {event.camera_id}</p>
+      await axios.post(`${API}/validation/${event.id}/${action}`);
 
-            <p>Track: {event.track_id}</p>
+      await load();
 
-            <p>Confiança: {(event.confidence*100).toFixed(1)}%</p>
+    } finally {
 
-            <img
+      setLoading(false);
 
+    }
+
+  };
+
+  useEffect(() => {
+
+    load();
+
+  }, [load]);
+
+  const StatCard = ({ title, value }) => (
+
+    <Paper
+      sx={{
+        p: 2,
+        textAlign: "center",
+        borderRadius: 3,
+      }}
+    >
+      <Typography variant="body2" color="text.secondary">
+        {title}
+      </Typography>
+
+      <Typography
+        variant="h4"
+        fontWeight={700}
+      >
+        {value}
+      </Typography>
+    </Paper>
+
+  );
+
+  return (
+
+  <Box sx={{ p: { xs: 2, md: 4 } }}>
+
+    <Stack spacing={3}>
+
+      <Grid container spacing={2}>
+
+        <Grid item xs={6} md={3}>
+          <StatCard
+            title="Pendentes"
+            value={stats.pending}
+          />
+        </Grid>
+
+        <Grid item xs={6} md={3}>
+          <StatCard
+            title="Aprovados"
+            value={stats.approved}
+          />
+        </Grid>
+
+        <Grid item xs={6} md={3}>
+          <StatCard
+            title="Rejeitados"
+            value={stats.rejected}
+          />
+        </Grid>
+
+        <Grid item xs={6} md={3}>
+          <StatCard
+            title="Total"
+            value={stats.total}
+          />
+        </Grid>
+
+      </Grid>
+
+      {event && (
+
+        <>
+
+          <Grid container spacing={3}>
+
+            <Grid item xs={12} lg={9}>
+
+              <SnapshotViewer
                 src={`${API}${event.snapshot}?t=${Date.now()}`}
+              />
 
-                width="800"
+            </Grid>
 
-            />
+            <Grid item xs={12} lg={3}>
 
-            <br/><br/>
+              <ValidationPanel
+                event={event}
+                loading={loading}
+                onApprove={() => handleDecision("approve")}
+                onReject={() => handleDecision("reject")}
+              />
 
-            <button onClick={approve}>
+            </Grid>
 
-                👍 Aprovar
+          </Grid>
 
-            </button>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
 
-            <button
-
-                onClick={reject}
-
-                style={{marginLeft:20}}
-
+            <Box
+              sx={{
+                width: "100%",
+                maxWidth: 900,
+              }}
             >
 
-                👎 Rejeitar
+              <VideoPlayer
+                src={`${API}${event.video}?t=${Date.now()}`}
+              />
 
-            </button>
+            </Box>
 
-        </div>
+          </Box>
 
-    );
+        </>
+
+      )}
+
+    </Stack>
+
+  </Box>
+
+);
 
 }

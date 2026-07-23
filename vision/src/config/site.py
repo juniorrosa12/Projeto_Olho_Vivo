@@ -1,0 +1,17 @@
+# Identificação
+
+FILIAL = "FILIAL_027"
+CAMERA = "CAM01"
+
+# Regiões
+
+DEFAULT_ROI = "CAIXA"
+
+# Timeouts
+
+PERSON_TIMEOUT = 2
+PHONE_ALERT_SECONDS = 30
+
+# IA
+
+MIN_CONFIDENCE = 0.35

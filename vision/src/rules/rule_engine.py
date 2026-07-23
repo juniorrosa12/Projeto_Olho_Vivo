@@ -1,6 +1,8 @@
 from src.analyzers.person_analyzer import PersonAnalyzer
 from src.analyzers.cell_phone_analyzer import CellPhoneAnalyzer
-from src.dispatcher.event_dispatcher import EventDispatcher
+
+from src.config.site import FILIAL, CAMERA
+from src.events.event_factory import EventFactory
 
 
 class RuleEngine:
@@ -9,7 +11,6 @@ class RuleEngine:
 
         self.person = PersonAnalyzer()
         self.phone = CellPhoneAnalyzer()
-        self.dispatcher = EventDispatcher()
 
     def process(self, frame, detections):
 
@@ -25,10 +26,14 @@ class RuleEngine:
             if d["class"] == "cell phone"
         ]
 
-        events = self.person.analyze(people)
+        objects = []
 
-        for event in events:
-            self.dispatcher.dispatch(event)
+        objects.extend(
+            self.person.analyze(
+                people,
+                frame,
+            )
+        )
 
         for phone in phones:
 
@@ -45,7 +50,18 @@ class RuleEngine:
                     and py2 <= y2
                 ):
 
-                    event = self.phone.analyze(person, phone)
+                    detection = self.phone.analyze(
+                        person,
+                        phone,
+                        frame,
+                    )
 
-                    if event:
-                        self.dispatcher.dispatch(event)
+                    if detection:
+                        objects.append(detection)
+
+        return EventFactory.create(
+            event_type="frame_analysis",
+            filial=FILIAL,
+            camera=CAMERA,
+            detections=objects,
+        )

@@ -25,11 +25,9 @@ def next_event():
         )
 
         if not event:
-
             return None
 
         return {
-
             "id": event.id,
             "event_type": event.event_type,
             "camera_id": event.camera_id,
@@ -41,11 +39,49 @@ def next_event():
             "video": event.video,
             "bbox": event.bbox,
             "event_time": event.event_time,
-
+            "status": event.status,
+            "metadata": event.event_metadata,
         }
 
     finally:
+        db.close()
 
+
+@router.get("/stats")
+def stats():
+
+    db = SessionLocal()
+
+    try:
+
+        pending = (
+            db.query(Event)
+            .filter(Event.validated == False)
+            .count()
+        )
+
+        approved = (
+            db.query(Event)
+            .filter(Event.status == "approved")
+            .count()
+        )
+
+        rejected = (
+            db.query(Event)
+            .filter(Event.status == "rejected")
+            .count()
+        )
+
+        total = db.query(Event).count()
+
+        return {
+            "total": total,
+            "pending": pending,
+            "approved": approved,
+            "rejected": rejected,
+        }
+
+    finally:
         db.close()
 
 
@@ -58,16 +94,20 @@ def approve(event_id: int):
 
         event = db.query(Event).get(event_id)
 
-        event.validated = True
+        if not event:
+            return {"error": "Evento não encontrado"}
 
+        event.validated = True
         event.status = "approved"
 
         db.commit()
 
-        return {"status": "approved"}
+        return {
+            "status": "approved",
+            "id": event.id,
+        }
 
     finally:
-
         db.close()
 
 
@@ -80,14 +120,18 @@ def reject(event_id: int):
 
         event = db.query(Event).get(event_id)
 
-        event.validated = True
+        if not event:
+            return {"error": "Evento não encontrado"}
 
+        event.validated = True
         event.status = "rejected"
 
         db.commit()
 
-        return {"status": "rejected"}
+        return {
+            "status": "rejected",
+            "id": event.id,
+        }
 
     finally:
-
         db.close()

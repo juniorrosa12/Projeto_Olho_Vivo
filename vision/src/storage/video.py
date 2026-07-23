@@ -2,34 +2,35 @@ import cv2
 import os
 import uuid
 
+
 class VideoRecorder:
 
     def __init__(self):
 
-        self.dir="/app/output/videos"
+        self.dir = "/app/output/videos"
 
-        os.makedirs(self.dir,exist_ok=True)
+        os.makedirs(self.dir, exist_ok=True)
 
-    def save(self,frames,fps=25):
+    def save(self, frames, fps=25):
 
-        if len(frames)==0:
+        if not frames:
             return ""
 
-        h,w=frames[0].shape[:2]
+        h, w = frames[0].shape[:2]
 
-        name=f"{uuid.uuid4().hex}.mp4"
+        filename = f"{uuid.uuid4().hex}.mp4"
 
-        path=os.path.join(self.dir,name)
+        fullpath = os.path.join(self.dir, filename)
 
-        writer=cv2.VideoWriter(
+        writer = cv2.VideoWriter(
 
-            path,
+            fullpath,
 
             cv2.VideoWriter_fourcc(*"mp4v"),
 
             fps,
 
-            (w,h)
+            (w, h)
 
         )
 
@@ -38,4 +39,4 @@ class VideoRecorder:
 
         writer.release()
 
-        return path
+        return f"/static/videos/{filename}"

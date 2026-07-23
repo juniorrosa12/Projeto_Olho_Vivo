@@ -1,58 +1,153 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Chip,
+  Grid,
+  Paper,
+  Stack,
+  Typography,
+} from "@mui/material";
 import axios from "axios";
 
-const API=`${window.location.protocol}//${window.location.hostname}:8000`;
+const API = `${window.location.protocol}//${window.location.hostname}:8000`;
 
-export default function StatsGrid(){
+const cards = [
+  {
+    key: "people_now",
+    label: "Pessoas Agora",
+    color: "success",
+  },
+  {
+    key: "entries",
+    label: "Entradas",
+    color: "info",
+  },
+  {
+    key: "exits",
+    label: "Saídas",
+    color: "warning",
+  },
+  {
+    key: "phones",
+    label: "Celulares",
+    color: "error",
+  },
+  {
+    key: "pending",
+    label: "Pendentes",
+    color: "warning",
+  },
+  {
+    key: "approved",
+    label: "Aprovados",
+    color: "success",
+  },
+  {
+    key: "rejected",
+    label: "Rejeitados",
+    color: "error",
+  },
+];
 
-    const[data,setData]=useState(null);
+export default function StatsGrid() {
 
-    async function load(){
+  const [data, setData] = useState();
 
-        const r=await axios.get(`${API}/events/dashboard`);
+  async function load() {
 
-        setData(r.data);
+    const r = await axios.get(`${API}/events/dashboard`);
 
-    }
+    setData(r.data);
 
-    useEffect(()=>{
+  }
 
-        load();
+  useEffect(() => {
 
-        const t=setInterval(load,2000);
+    load();
 
-        return()=>clearInterval(t);
+    const timer = setInterval(load, 2000);
 
-    },[]);
+    return () => clearInterval(timer);
 
-    if(!data) return null;
+  }, []);
 
-    return(
+  const metrics = useMemo(() => {
 
-        <div className="stats-grid">
+    if (!data) return [];
 
-            <div className="card">
-                <h2>{data.people_now}</h2>
-                <span>Pessoas Agora</span>
-            </div>
+    return cards.map(card => ({
 
-            <div className="card">
-                <h2>{data.entries}</h2>
-                <span>Entradas</span>
-            </div>
+      ...card,
 
-            <div className="card">
-                <h2>{data.exits}</h2>
-                <span>Saídas</span>
-            </div>
+      value: data[card.key] ?? 0
 
-            <div className="card">
-                <h2>{data.pending}</h2>
-                <span>Pendentes</span>
-            </div>
+    }));
 
-        </div>
+  }, [data]);
 
-    );
+  if (!data) return null;
+
+  return (
+
+    <Grid container spacing={2} sx={{ mb:3 }}>
+
+      {metrics.map(metric=>(
+
+        <Grid item xs={12} sm={6} md={4} lg={3} key={metric.key}>
+
+          <Paper
+            elevation={4}
+            sx={{
+              p:3,
+              borderRadius:3,
+              height:"100%",
+              transition:"0.2s",
+              "&:hover":{
+                transform:"translateY(-3px)"
+              }
+            }}
+          >
+
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+              >
+
+                {metric.label}
+
+              </Typography>
+
+              <Chip
+                label="LIVE"
+                color={metric.color}
+                size="small"
+              />
+
+            </Stack>
+
+            <Typography
+              mt={2}
+              variant="h3"
+              fontWeight={700}
+            >
+
+              {metric.value}
+
+            </Typography>
+
+          </Paper>
+
+        </Grid>
+
+      ))}
+
+    </Grid>
+
+  );
 
 }
