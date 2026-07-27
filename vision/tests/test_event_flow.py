@@ -7,19 +7,29 @@ from src.events.event_factory import EventFactory
 from src.models.ai_event import AIEvent
 
 
-def test_event_factory_creates_event_with_snapshot_and_video_defaults():
+def test_event_factory_creates_event():
+
     event = EventFactory.create(
-        "person_enter",
-        "FILIAL_027",
-        "CAM01",
-        7,
-        0.95,
-        [1, 2, 3, 4],
-        "CAIXA",
+        event_type="frame_analysis",
+        filial="FILIAL_027",
+        camera="CAM01",
+        detections=[],
     )
 
     assert isinstance(event, AIEvent)
-    assert event.event_type == "person_enter"
-    assert event.snapshot == ""
-    assert event.video == ""
+
+    assert event.event_type == "frame_analysis"
+
+    assert event.filial == "FILIAL_027"
+
+    assert event.camera == "CAM01"
+
     assert event.status == "pending"
+
+    assert event.snapshot == ""
+
+    assert event.video == ""
+
+    assert isinstance(event.timestamp, str)
+
+    assert event.detections == []

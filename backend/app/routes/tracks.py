@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter
 
-from app.database.database import get_db
 from app.models.track import Track
 from app.services.track_service import TrackService
+from app.database.database import SessionLocal
 
 router = APIRouter(
     prefix="/tracks",
@@ -12,9 +11,9 @@ router = APIRouter(
 
 
 @router.post("/")
-def create_track(track: dict, db: Session = Depends(get_db)):
+def create_track(track: dict):
 
-    TrackService.upsert(db, track)
+    TrackService.upsert(track)
 
     return {
         "status": "ok"
@@ -22,6 +21,14 @@ def create_track(track: dict, db: Session = Depends(get_db)):
 
 
 @router.get("/")
-def list_tracks(db: Session = Depends(get_db)):
+def list_tracks():
 
-    return db.query(Track).all()
+    db = SessionLocal()
+
+    try:
+
+        return db.query(Track).all()
+
+    finally:
+
+        db.close()

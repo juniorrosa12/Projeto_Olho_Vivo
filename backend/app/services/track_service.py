@@ -1,39 +1,46 @@
-from sqlalchemy.orm import Session
-
+from app.database.database import SessionLocal
 from app.models.track import Track
 
 
 class TrackService:
 
     @staticmethod
-    def upsert(db: Session, data: dict):
+    def upsert(data: dict):
 
-        track = db.query(Track).filter(
-            Track.track_id == data["track_id"]
-        ).first()
+        db = SessionLocal()
 
-        if track:
+        try:
 
-            track.confidence = data["confidence"]
-            track.bbox = data["bbox"]
-            track.last_seen = data["last_seen"]
-            track.frame_count = data["frames"]
-
-        else:
-
-            track = Track(
-                track_id=data["track_id"],
-                filial_id="FILIAL_027",
-                camera_id="CAM01",
-                object_class=data["class"],
-                confidence=data["confidence"],
-                bbox=data["bbox"],
-                frame_count=data["frames"],
+            track = (
+                db.query(Track)
+                .filter(Track.track_id == data["track_id"])
+                .first()
             )
 
-            db.add(track)
+            if track is None:
 
-        db.commit()
+                track = Track(
+                    track_id=data["track_id"],
+                    filial_id=data["filial_id"],
+                    camera_id=data["camera_id"],
+                    object_class=data["object_class"],
+                    confidence=data["confidence"],
+                    bbox=data["bbox"],
+                    frame_count=data["frame_count"],
+                )
 
-        return track
+                db.add(track)
 
+            else:
+
+                track.confidence = data["confidence"]
+                track.bbox = data["bbox"]
+                track.frame_count = data["frame_count"]
+
+            db.commit()
+
+            return track
+
+        finally:
+
+            db.close()

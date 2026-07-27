@@ -7,24 +7,47 @@ from loguru import logger
 class BackendClient:
 
     def __init__(self):
-        self.base_url = "http://backend:8000/events/"
+
+        self.base_url = "http://backend:8000"
 
     def send(self, event):
-
-        payload = asdict(event)
 
         try:
 
             response = requests.post(
-                self.base_url,
-                json=payload,
+                f"{self.base_url}/events/",
+                json=asdict(event),
                 timeout=5,
             )
 
             response.raise_for_status()
 
             logger.success(
-                f"Frame enviado com {len(event.detections)} detecções."
+                f"Evento enviado ({len(event.detections)} detecções)"
+            )
+
+            return True
+
+        except Exception as e:
+
+            logger.exception(e)
+
+            return False
+
+    def send_track(self, track):
+
+        try:
+
+            response = requests.post(
+                f"{self.base_url}/tracks/",
+                json=track,
+                timeout=5,
+            )
+
+            response.raise_for_status()
+
+            logger.success(
+                f"Track {track['track_id']} enviado."
             )
 
             return True

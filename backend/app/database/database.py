@@ -1,12 +1,11 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = "postgresql+psycopg2://olhovivo:olhovivo123@postgres:5432/olhovivo"
+DATABASE_URL = "sqlite:///./olhovivo.db"
 
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,
+    connect_args={"check_same_thread": False},
 )
 
 SessionLocal = sessionmaker(
@@ -18,21 +17,22 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 
-# IMPORTAR TODOS OS MODELOS AQUI
-from app.models.event import Event
-from app.models.track import Track
-from app.models.annotation import Annotation
-from app.models.validation import Validation
-from app.models.dataset import Dataset
-
-
-def create_database():
-    Base.metadata.create_all(bind=engine)
-
-
 def get_db():
+
     db = SessionLocal()
+
     try:
         yield db
     finally:
         db.close()
+
+
+def create_database():
+
+    from app.models.event import Event
+    from app.models.track import Track
+    from app.models.validation import Validation
+    from app.models.annotation import Annotation
+    from app.models.dataset import Dataset
+
+    Base.metadata.create_all(bind=engine)

@@ -15,21 +15,18 @@ class Detection(BaseModel):
     display_name: str
     confidence: float
     bbox: list
+    metadata: dict = {}
 
 
 class EventRequest(BaseModel):
     event_type: str
     filial: str
     camera: str
-    track_id: int
-    confidence: float = 0
-    bbox: list = []
-    roi: str = ""
+    detections: list[Detection] = []
+    metadata: dict = {}
     snapshot: str = ""
     video: str = ""
     status: str = "pending"
-    metadata: dict = {}
-    detections: list[Detection] = []
     timestamp: str
 
 
@@ -46,17 +43,19 @@ def receive_event(event: EventRequest):
 
     try:
 
+        first = event.detections[0] if event.detections else None
+
         db_event = Event(
             event_type=event.event_type,
             filial_id=event.filial,
             camera_id=event.camera,
-            track_id=event.track_id,
-            confidence=event.confidence,
-            roi=event.roi,
-            bbox=event.bbox,
+            track_id=first.track_id if first else -1,
+            confidence=first.confidence if first else 0,
+            bbox=first.bbox if first else [],
             snapshot=event.snapshot,
             video=event.video,
             status=event.status,
+            roi="",
             event_time=datetime.fromisoformat(event.timestamp),
             event_metadata=event.metadata,
         )
@@ -98,30 +97,6 @@ def dashboard():
 
     try:
 
-        entries = db.query(Event).filter(
-            Event.event_type == "person_enter"
-        ).count()
-
-        exits = db.query(Event).filter(
-            Event.event_type == "person_exit"
-        ).count()
-
-        phones = db.query(Event).filter(
-            Event.event_type == "cell_phone"
-        ).count()
-
-        pending = db.query(Event).filter(
-            Event.status == "pending"
-        ).count()
-
-        approved = db.query(Event).filter(
-            Event.status == "approved"
-        ).count()
-
-        rejected = db.query(Event).filter(
-            Event.status == "rejected"
-        ).count()
-
         last = (
             db.query(Event)
             .order_by(desc(Event.id))
@@ -131,22 +106,21 @@ def dashboard():
 
         return {
 
-            "people_now": max(entries - exits, 0),
+            "events": db.query(Event).count(),
 
-            "entries": entries,
+            "pending": db.query(Event).filter(
+                Event.status == "pending"
+            ).count(),
 
-            "exits": exits,
+            "approved": db.query(Event).filter(
+                Event.status == "approved"
+            ).count(),
 
-            "phones": phones,
-
-            "pending": pending,
-
-            "approved": approved,
-
-            "rejected": rejected,
+            "rejected": db.query(Event).filter(
+                Event.status == "rejected"
+            ).count(),
 
             "last_events": [
-
                 {
                     "id": e.id,
                     "event_type": e.event_type,
@@ -159,11 +133,8 @@ def dashboard():
                     "status": e.status,
                     "event_time": e.event_time,
                 }
-
                 for e in last
-
             ],
-
         }
 
     finally:

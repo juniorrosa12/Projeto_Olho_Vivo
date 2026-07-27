@@ -1,5 +1,4 @@
-from src.models.ai_event import AIEvent
-from src.models.ai_event import Detection
+from src.models.ai_event import AIEvent, Detection
 
 
 class EventFactory:
@@ -32,10 +31,18 @@ class EventFactory:
         metadata=None,
     ):
 
-        return AIEvent(
+        event = AIEvent(
             event_type=event_type,
             filial=filial,
             camera=camera,
             detections=detections,
             metadata=metadata or {},
         )
+
+        if detections:
+
+            event.track_id = detections[0].track_id
+            event.confidence = detections[0].confidence
+            event.bbox = detections[0].bbox
+
+        return event

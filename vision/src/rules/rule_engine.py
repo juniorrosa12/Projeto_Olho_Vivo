@@ -1,7 +1,7 @@
-from src.analyzers.person_analyzer import PersonAnalyzer
+ 
 from src.analyzers.cell_phone_analyzer import CellPhoneAnalyzer
-
-from src.config.site import FILIAL, CAMERA
+from src.analyzers.person_analyzer import PersonAnalyzer
+from src.config.site import CAMERA, FILIAL
 from src.events.event_factory import EventFactory
 
 
@@ -10,6 +10,7 @@ class RuleEngine:
     def __init__(self):
 
         self.person = PersonAnalyzer()
+
         self.phone = CellPhoneAnalyzer()
 
     def process(self, frame, detections):
@@ -64,4 +65,7 @@ class RuleEngine:
             filial=FILIAL,
             camera=CAMERA,
             detections=objects,
+            metadata={
+                "total_detections": len(objects),
+            },
         )
