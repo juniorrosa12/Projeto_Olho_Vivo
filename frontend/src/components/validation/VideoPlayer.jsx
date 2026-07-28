@@ -21,7 +21,7 @@ export default function VideoPlayer({ src }) {
           Vídeo do evento
         </Typography>
       </Box>
-      <Box sx={{ p: 2, bgcolor: "grey.900" }}>
+      <Box sx={{ bgcolor: "#020617", aspectRatio: "16 / 9", display: "flex", justifyContent: "center" }}>
         <Box
           component="video"
           src={src}
@@ -30,7 +30,7 @@ export default function VideoPlayer({ src }) {
           muted
           playsInline
           preload="auto"
-          sx={{ display: "block", width: "100%", maxWidth: "none", borderRadius: 2 }}
+          sx={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }}
         />
       </Box>
     </Paper>

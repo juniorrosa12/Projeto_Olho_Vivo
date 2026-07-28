@@ -101,8 +101,8 @@ export default function ObjectAnnotator({ image, boxes = [], selectedId, onChang
     update(boxesRef.current.map((box) => box.id === selectedId ? { ...box, x: Math.min(startRef.current.x, world.x), y: Math.min(startRef.current.y, world.y), width: Math.abs(world.x - startRef.current.x), height: Math.abs(world.y - startRef.current.y) } : box));
   };
   const endDrawing = () => { if (drawing) update(boxesRef.current, true); setDrawing(false); startRef.current = null; };
-  return <Paper ref={containerRef} elevation={0} sx={{ overflow: "hidden", border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
-    <Box sx={{ p: 1, display: "flex", gap: 1, alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid", borderColor: "divider", flexWrap: "wrap" }}>
+  return <Paper ref={containerRef} elevation={0} sx={{ overflow: "hidden", bgcolor: "#0b1220", color: "#f8fafc", border: "1px solid #243044", borderRadius: 3, boxShadow: "0 18px 40px rgba(15,23,42,.18)" }}>
+    <Box sx={{ px: 1.5, py: 1, display: "flex", gap: 1, alignItems: "center", justifyContent: "space-between", bgcolor: "#111827", borderBottom: "1px solid #243044", flexWrap: "wrap" }}>
       <ButtonGroup size="small">
         <Tooltip title="Diminuir zoom (roda do mouse)"><Button onClick={() => zoomAt(zoom / 1.2)}><RemoveIcon /></Button></Tooltip>
         <Tooltip title="Aumentar zoom (Ctrl + roda)"><Button onClick={() => zoomAt(zoom * 1.2)}><AddIcon /></Button></Tooltip>
@@ -112,13 +112,13 @@ export default function ObjectAnnotator({ image, boxes = [], selectedId, onChang
       </ButtonGroup>
       <Box sx={{ display: "flex", gap: 2 }}><Typography variant="caption">Zoom: {Math.round(zoom * 100)}%</Typography><Typography variant="caption">Objetos: {boxes.length}</Typography><Typography variant="caption">Espaço + arrastar para mover</Typography></Box>
     </Box>
-    {img && <Stage ref={stageRef} width={viewport.width} height={viewport.height} onWheel={(event) => { event.evt.preventDefault(); zoomAt(zoom * (event.evt.deltaY > 0 ? 0.9 : 1.1), pointer()); }} onMouseDown={mouseDown} onMouseMove={mouseMove} onMouseUp={endDrawing}>
+    <Box sx={{ bgcolor: "#020617", backgroundImage: "radial-gradient(#1e293b 1px, transparent 1px)", backgroundSize: "20px 20px" }}>{img && <Stage ref={stageRef} width={viewport.width} height={viewport.height} onWheel={(event) => { event.evt.preventDefault(); zoomAt(zoom * (event.evt.deltaY > 0 ? 0.9 : 1.1), pointer()); }} onMouseDown={mouseDown} onMouseMove={mouseMove} onMouseUp={endDrawing}>
       <Layer><Group x={position.x} y={position.y} scaleX={zoom} scaleY={zoom} draggable={spacePressed} onDragMove={(e) => setPosition(constrainPosition({ x: e.target.x(), y: e.target.y() }))}>
         <KonvaImage image={img} width={img.width} height={img.height} />
         {boxes.map((box) => { const info = getObjectClass(box.class); const showDelete = box.id === selectedId || box.id === hoveredId; const remove = () => { const next = boxesRef.current.filter((item) => item.id !== box.id); update(next, true); onSelect?.(null); }; return <Group key={box.id}><Rect id={`box-${box.id}`} x={box.x} y={box.y} width={box.width} height={box.height} stroke={info.color} strokeWidth={box.id === selectedId ? 4 / zoom : 2 / zoom} shadowColor={box.id === selectedId ? "#fff" : undefined} shadowBlur={box.id === selectedId ? 8 / zoom : 0} draggable={!spacePressed} onMouseEnter={() => setHoveredId(box.id)} onMouseLeave={() => setHoveredId(null)} onClick={() => onSelect?.(box.id)} onDragEnd={(e) => update(boxesRef.current.map((item) => item.id === box.id ? { ...item, x: e.target.x(), y: e.target.y() } : item), true)} onTransformEnd={(e) => { const node = e.target; const sx = node.scaleX(); const sy = node.scaleY(); node.scaleX(1); node.scaleY(1); update(boxesRef.current.map((item) => item.id === box.id ? { ...item, x: node.x(), y: node.y(), width: node.width() * sx, height: node.height() * sy } : item), true); }} />
           {showDelete && <Group x={box.x + box.width} y={box.y} onClick={(event) => { event.cancelBubble = true; remove(); }}><Circle radius={10 / zoom} fill="#e53935" /><Text text="×" fontSize={18 / zoom} fill="#fff" align="center" verticalAlign="middle" offsetX={5 / zoom} offsetY={9 / zoom} /></Group>}
         </Group>; })}<Transformer ref={transformerRef} rotateEnabled={false} keepRatio={false} />
       </Group></Layer>
-    </Stage>}
+    </Stage>}</Box>
   </Paper>;
 }

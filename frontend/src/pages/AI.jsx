@@ -1,3 +1,6 @@
+import React from "react";
+import AISettingsContainer from "../features/settings/containers/AISettingsContainer";
+
 export default function AI() {
-    return <h1>IA</h1>;
+  return <AISettingsContainer />;
 }
