@@ -210,7 +210,7 @@ export default function Validation() {
 
           <Grid container spacing={3}>
 
-            <Grid item xs={12} lg={9}>
+            <Grid item xs={12} lg={10}>
 
               <ObjectAnnotator
                 image={`${API}${event.snapshot}?t=${event.id}`}
@@ -225,7 +225,7 @@ export default function Validation() {
 
             </Grid>
 
-            <Grid item xs={12} lg={3}>
+            <Grid item xs={12} lg={2}>
 
               <ValidationPanel
                 event={event}
@@ -257,12 +257,12 @@ export default function Validation() {
             <Box
               sx={{
                 width: "100%",
-                maxWidth: 900,
+                maxWidth: "none",
               }}
             >
 
               <VideoPlayer
-                src={`${API}${event.video}?t=${event.id}`}
+                src={event.video ? `${API}${event.video}?t=${event.id}` : null}
               />
 
             </Box>

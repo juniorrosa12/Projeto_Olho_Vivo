@@ -1,4 +1,4 @@
-import { Group, Image as KonvaImage, Layer, Rect, Stage, Transformer } from "react-konva";
+import { Circle, Group, Image as KonvaImage, Layer, Rect, Stage, Text, Transformer } from "react-konva";
 import useImage from "use-image";
 import { useEffect, useRef, useState } from "react";
 import { Box, Button, ButtonGroup, Paper, Tooltip, Typography } from "@mui/material";
@@ -18,6 +18,7 @@ export default function ObjectAnnotator({ image, boxes = [], selectedId, onChang
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [drawing, setDrawing] = useState(false);
   const [spacePressed, setSpacePressed] = useState(false);
+  const [hoveredId, setHoveredId] = useState(null);
   const containerRef = useRef();
   const stageRef = useRef();
   const transformerRef = useRef();
@@ -28,7 +29,7 @@ export default function ObjectAnnotator({ image, boxes = [], selectedId, onChang
   useEffect(() => {
     const resize = () => {
       const width = containerRef.current?.clientWidth || 960;
-      setViewport({ width, height: Math.min(700, Math.max(420, width * 0.65)) });
+      setViewport({ width, height: Math.min(820, Math.max(520, width * 0.6)) });
     };
     resize();
     const observer = new ResizeObserver(resize);
@@ -111,9 +112,13 @@ export default function ObjectAnnotator({ image, boxes = [], selectedId, onChang
       </ButtonGroup>
       <Box sx={{ display: "flex", gap: 2 }}><Typography variant="caption">Zoom: {Math.round(zoom * 100)}%</Typography><Typography variant="caption">Objetos: {boxes.length}</Typography><Typography variant="caption">Espaço + arrastar para mover</Typography></Box>
     </Box>
-    {img && <Stage ref={stageRef} width={viewport.width} height={viewport.height} draggable={spacePressed} x={position.x} y={position.y} onDragMove={(e) => setPosition(constrainPosition({ x: e.target.x(), y: e.target.y() }))} onWheel={(event) => { event.evt.preventDefault(); zoomAt(zoom * (event.evt.deltaY > 0 ? 0.9 : 1.1), pointer()); }} onMouseDown={mouseDown} onMouseMove={mouseMove} onMouseUp={endDrawing}>
-      <Layer><Group scaleX={zoom} scaleY={zoom}><KonvaImage image={img} width={img.width} height={img.height} /></Group></Layer>
-      <Layer><Group scaleX={zoom} scaleY={zoom}>{boxes.map((box) => { const info = getObjectClass(box.class); return <Rect key={box.id} id={`box-${box.id}`} x={box.x} y={box.y} width={box.width} height={box.height} stroke={info.color} strokeWidth={box.id === selectedId ? 4 / zoom : 2 / zoom} shadowColor={box.id === selectedId ? "#fff" : undefined} shadowBlur={box.id === selectedId ? 8 / zoom : 0} draggable={!spacePressed} onClick={() => onSelect?.(box.id)} onDragEnd={(e) => update(boxesRef.current.map((item) => item.id === box.id ? { ...item, x: e.target.x(), y: e.target.y() } : item), true)} onTransformEnd={(e) => { const node = e.target; const sx = node.scaleX(); const sy = node.scaleY(); node.scaleX(1); node.scaleY(1); update(boxesRef.current.map((item) => item.id === box.id ? { ...item, x: node.x(), y: node.y(), width: node.width() * sx, height: node.height() * sy } : item), true); }} />; })}<Transformer ref={transformerRef} rotateEnabled={false} keepRatio={false} /></Group></Layer>
+    {img && <Stage ref={stageRef} width={viewport.width} height={viewport.height} onWheel={(event) => { event.evt.preventDefault(); zoomAt(zoom * (event.evt.deltaY > 0 ? 0.9 : 1.1), pointer()); }} onMouseDown={mouseDown} onMouseMove={mouseMove} onMouseUp={endDrawing}>
+      <Layer><Group x={position.x} y={position.y} scaleX={zoom} scaleY={zoom} draggable={spacePressed} onDragMove={(e) => setPosition(constrainPosition({ x: e.target.x(), y: e.target.y() }))}>
+        <KonvaImage image={img} width={img.width} height={img.height} />
+        {boxes.map((box) => { const info = getObjectClass(box.class); const showDelete = box.id === selectedId || box.id === hoveredId; const remove = () => { const next = boxesRef.current.filter((item) => item.id !== box.id); update(next, true); onSelect?.(null); }; return <Group key={box.id}><Rect id={`box-${box.id}`} x={box.x} y={box.y} width={box.width} height={box.height} stroke={info.color} strokeWidth={box.id === selectedId ? 4 / zoom : 2 / zoom} shadowColor={box.id === selectedId ? "#fff" : undefined} shadowBlur={box.id === selectedId ? 8 / zoom : 0} draggable={!spacePressed} onMouseEnter={() => setHoveredId(box.id)} onMouseLeave={() => setHoveredId(null)} onClick={() => onSelect?.(box.id)} onDragEnd={(e) => update(boxesRef.current.map((item) => item.id === box.id ? { ...item, x: e.target.x(), y: e.target.y() } : item), true)} onTransformEnd={(e) => { const node = e.target; const sx = node.scaleX(); const sy = node.scaleY(); node.scaleX(1); node.scaleY(1); update(boxesRef.current.map((item) => item.id === box.id ? { ...item, x: node.x(), y: node.y(), width: node.width() * sx, height: node.height() * sy } : item), true); }} />
+          {showDelete && <Group x={box.x + box.width} y={box.y} onClick={(event) => { event.cancelBubble = true; remove(); }}><Circle radius={10 / zoom} fill="#e53935" /><Text text="×" fontSize={18 / zoom} fill="#fff" align="center" verticalAlign="middle" offsetX={5 / zoom} offsetY={9 / zoom} /></Group>}
+        </Group>; })}<Transformer ref={transformerRef} rotateEnabled={false} keepRatio={false} />
+      </Group></Layer>
     </Stage>}
   </Paper>;
 }

@@ -29,7 +29,8 @@ export default function VideoPlayer({ src }) {
           autoPlay
           muted
           playsInline
-          sx={{ width: "100%", maxWidth: 960, borderRadius: 2 }}
+          preload="auto"
+          sx={{ display: "block", width: "100%", maxWidth: "none", borderRadius: 2 }}
         />
       </Box>
     </Paper>
