@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { generateRtspUrl } from '../../services/network/rtspGenerator';
+import { DeviceManager } from '../../services/device/DeviceManager';
 
 export const useInfrastructureStore = create((set, get) => ({
   // Telemetria Global do Sistema
@@ -99,19 +99,12 @@ export const useInfrastructureStore = create((set, get) => ({
     },
   ],
 
-  // Ações de Cadastro e Teste
+  // Ações de Cadastro e Teste via Device Manager
   addDvr: (newDvr) => set((state) => ({ dvrs: [...state.dvrs, { ...newDvr, id: `dvr-${Date.now()}` }] })),
 
   addCamera: (newCamera) => {
     const dvr = get().dvrs.find((d) => d.id === newCamera.dvrId);
-    const autoRtsp = generateRtspUrl({
-      manufacturer: dvr?.manufacturer || 'HIKVISION',
-      ip: dvr?.tailscaleIp || '100.64.10.27',
-      port: dvr?.rtspPort || 554,
-      user: dvr?.user || 'admin',
-      password: dvr?.password || '',
-      channel: newCamera.channel || 1,
-    });
+    const autoRtsp = DeviceManager.getStreamUrl(dvr || newCamera, newCamera.channel || 1);
 
     set((state) => ({
       cameras: [...state.cameras, { ...newCamera, id: `cam-${Date.now()}`, rtspUrl: autoRtsp, status: 'ONLINE' }],
@@ -119,14 +112,12 @@ export const useInfrastructureStore = create((set, get) => ({
   },
 
   testDvrConnection: async (dvrId) => {
-    const dvr = get().dvrs.find((d) => d.id === dvrId);
-    if (!dvr) return { success: false, message: 'DVR não encontrado' };
-    // Simula teste de socket Ping, HTTP (port 80) e RTSP (port 554) sobre a malha Tailscale
-    return {
-      success: true,
-      pingMs: Math.floor(Math.random() * 15) + 5,
-      httpStatus: 200,
-      rtspStatus: 'CONNECTED (H.264 / 1080p)',
+    const dvr = get().dvrs.find((d) => d.id === dvrId) || {
+      manufacturer: 'HIKVISION',
+      tailscaleIp: '100.64.10.27',
+      httpPort: 80,
+      rtspPort: 554,
     };
+    return await DeviceManager.testDeviceConnection(dvr);
   },
 }));

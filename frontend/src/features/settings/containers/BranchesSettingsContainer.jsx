@@ -17,26 +17,32 @@ import {
   Select,
   MenuItem,
   CircularProgress,
-  Divider,
+  IconButton,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import StoreIcon from '@mui/icons-material/Store';
 import RouterIcon from '@mui/icons-material/Router';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import SpeedIcon from '@mui/icons-material/Speed';
+import MapIcon from '@mui/icons-material/Map';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import NetworkCheckIcon from '@mui/icons-material/NetworkCheck';
 import AddIcon from '@mui/icons-material/Add';
 import { useInfrastructureStore } from '../../../infrastructure/stores/useInfrastructureStore';
+import { DvrProvisioner } from '../../../services/device/DvrProvisioner';
+import OperationalTelemetryDashboard from '../../infrastructure/containers/OperationalTelemetryDashboard';
+import InteractiveOperationalMap from '../../infrastructure/containers/InteractiveOperationalMap';
 
 export default function BranchesSettingsContainer() {
   const [activeTab, setActiveTab] = useState(0);
-  const { branches, dvrs, cameras, telemetry, testDvrConnection, addDvr } = useInfrastructureStore();
+  const { branches, dvrs, cameras, testDvrConnection, addDvr, addCamera } = useInfrastructureStore();
 
   const [testResult, setTestResult] = useState(null);
   const [testingDvrId, setTestingDvrId] = useState(null);
 
-  // Form de Novo DVR
+  // Form de Novo DVR (BUG 02 + Sprint 25 Auto-Provision)
   const [openAddDvrModal, setOpenAddDvrModal] = useState(false);
+  const [provisioning, setProvisioning] = useState(false);
   const [newDvrData, setNewDvrData] = useState({
     name: '',
     manufacturer: 'HIKVISION',
@@ -58,9 +64,24 @@ export default function BranchesSettingsContainer() {
     setTestResult(result);
   };
 
-  const handleCreateDvr = () => {
-    addDvr(newDvrData);
-    setOpenAddDvrModal(false);
+  const handleCreateDvr = async () => {
+    if (!newDvrData.name) {
+      alert('Por favor, informe o nome do DVR.');
+      return;
+    }
+    setProvisioning(true);
+    const dvrObj = { ...newDvrData, id: `dvr-${Date.now()}` };
+    addDvr(dvrObj);
+
+    // Auto-provisionamento de canais de câmera (Sprint 25)
+    try {
+      await DvrProvisioner.provisionDvr(dvrObj, (newCam) => addCamera(newCam));
+    } catch {
+      // Continua gravação mesmo que a varredura remota timeout
+    } finally {
+      setProvisioning(false);
+      setOpenAddDvrModal(false);
+    }
   };
 
   return (
@@ -90,7 +111,8 @@ export default function BranchesSettingsContainer() {
         <Tab icon={<StoreIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Filiais & Redes Tailscale" />
         <Tab icon={<RouterIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Gestão de DVRs" />
         <Tab icon={<VideocamIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Câmeras & URLs RTSP" />
-        <Tab icon={<SpeedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Telemetria da Infraestrutura" />
+        <Tab icon={<SpeedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Telemetria" />
+        <Tab icon={<MapIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Mapa Operacional" />
       </Tabs>
 
       {/* ABA 0: Filiais Tailscale */}
@@ -213,7 +235,7 @@ export default function BranchesSettingsContainer() {
 
                 <Box sx={{ bgcolor: '#1E293B', p: 1.5, borderRadius: 2, mb: 2 }}>
                   <Typography variant="caption" color="#94A3B8" display="block" mb={0.5}>
-                    URL RTSP Gerada Automatizada:
+                    URL RTSP Gerada Automatizada (Device Manager):
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#38BDF8', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                     {cam.rtspUrl}
@@ -231,35 +253,203 @@ export default function BranchesSettingsContainer() {
         </Grid>
       )}
 
-      {/* ABA 3: Telemetria da Infraestrutura */}
-      {activeTab === 3 && (
-        <Grid container spacing={3}>
-          {[
-            { name: 'Rede Mesh Tailscale', val: `${telemetry.tailscaleMesh.latencyMs} ms`, status: telemetry.tailscaleMesh.status, detail: `${telemetry.tailscaleMesh.nodeCount} nós ativos` },
-            { name: 'Backend FastAPI', val: `${telemetry.backendFastAPI.latencyMs} ms`, status: telemetry.backendFastAPI.status, detail: telemetry.backendFastAPI.version },
-            { name: 'Vision Worker IA', val: `${telemetry.visionWorker.fps} FPS`, status: telemetry.visionWorker.status, detail: `GPU: ${telemetry.visionWorker.gpuUsagePercent}% (${telemetry.visionWorker.tempC}°C)` },
-            { name: 'PostgreSQL Database', val: `${telemetry.postgresDB.latencyMs} ms`, status: telemetry.postgresDB.status, detail: `${telemetry.postgresDB.connections} conexões` },
-            { name: 'Redis Cache', val: `${telemetry.redisCache.latencyMs} ms`, status: telemetry.redisCache.status, detail: `${telemetry.redisCache.memoryUsedMB} MB RAM` },
-          ].map((item, idx) => (
-            <Grid item xs={12} sm={6} md={4} key={idx}>
-              <Paper elevation={0} sx={{ p: 2.5, bgcolor: '#0F172A', border: '1px solid #1E293B', borderRadius: 2.5 }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                  <Typography variant="subtitle2" fontWeight={700}>
-                    {item.name}
-                  </Typography>
-                  <Chip label={item.status} size="small" sx={{ bgcolor: 'rgba(16,185,129,0.15)', color: '#6EE7B7', fontWeight: 700 }} />
-                </Box>
-                <Typography variant="h4" fontWeight={700} color="#38BDF8" my={1}>
-                  {item.val}
+      {/* ABA 3: Telemetria da Infraestrutura (Sprint 27) */}
+      {activeTab === 3 && <OperationalTelemetryDashboard />}
+
+      {/* ABA 4: Mapa Operacional Interativo (Sprint 28) */}
+      {activeTab === 4 && <InteractiveOperationalMap />}
+
+      {/* MODAL BUG 02: Cadastrar DVR Profissional */}
+      <Dialog
+        open={openAddDvrModal}
+        onClose={() => setOpenAddDvrModal(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: { bgcolor: '#0F172A', color: '#F8FAFC', border: '1px solid #1E293B', borderRadius: 3 },
+        }}
+      >
+        <DialogTitle display="flex" justifyContent="space-between" alignItems="center" borderBottom="1px solid #1E293B">
+          <Typography variant="h6" fontWeight={700}>
+            Cadastrar Novo DVR de Loja
+          </Typography>
+          <IconButton size="small" onClick={() => setOpenAddDvrModal(false)} sx={{ color: '#94A3B8' }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ py: 3 }}>
+          <Stack spacing={2.5} mt={1}>
+            <TextField
+              label="Nome do DVR"
+              size="small"
+              fullWidth
+              value={newDvrData.name}
+              onChange={(e) => setNewDvrData({ ...newDvrData, name: e.target.value })}
+              placeholder="Ex: DVR Principal Caixas"
+              sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+            />
+
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography variant="caption" color="#94A3B8" display="block" mb={0.5}>
+                  Fabricante
                 </Typography>
-                <Typography variant="caption" color="#94A3B8">
-                  {item.detail}
+                <Select
+                  size="small"
+                  fullWidth
+                  value={newDvrData.manufacturer}
+                  onChange={(e) => setNewDvrData({ ...newDvrData, manufacturer: e.target.value })}
+                  sx={{ bgcolor: '#1E293B', color: '#F8FAFC', fieldset: { borderColor: '#334155' } }}
+                >
+                  <MenuItem value="HIKVISION">Hikvision</MenuItem>
+                  <MenuItem value="DAHUA">Dahua</MenuItem>
+                  <MenuItem value="INTELBRAS">Intelbras</MenuItem>
+                  <MenuItem value="UNIVIEW">Uniview</MenuItem>
+                  <MenuItem value="GENERIC">Genérico RTSP</MenuItem>
+                </Select>
+              </Grid>
+
+              <Grid item xs={6}>
+                <Typography variant="caption" color="#94A3B8" display="block" mb={0.5}>
+                  Filial Associada
                 </Typography>
-              </Paper>
+                <Select
+                  size="small"
+                  fullWidth
+                  value={newDvrData.branchId}
+                  onChange={(e) => setNewDvrData({ ...newDvrData, branchId: e.target.value })}
+                  sx={{ bgcolor: '#1E293B', color: '#F8FAFC', fieldset: { borderColor: '#334155' } }}
+                >
+                  {branches.map((b) => (
+                    <MenuItem key={b.id} value={b.id}>
+                      {b.name} ({b.code})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </Grid>
             </Grid>
-          ))}
-        </Grid>
-      )}
+
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <TextField
+                  label="Modelo do Equipamento"
+                  size="small"
+                  fullWidth
+                  value={newDvrData.model}
+                  onChange={(e) => setNewDvrData({ ...newDvrData, model: e.target.value })}
+                  sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                />
+              </Grid>
+
+              <Grid item xs={6}>
+                <TextField
+                  label="IP VPN Tailscale"
+                  size="small"
+                  fullWidth
+                  value={newDvrData.tailscaleIp}
+                  onChange={(e) => setNewDvrData({ ...newDvrData, tailscaleIp: e.target.value })}
+                  placeholder="100.64.10.X"
+                  sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                />
+              </Grid>
+            </Grid>
+
+            <Grid container spacing={2}>
+              <Grid item xs={4}>
+                <TextField
+                  label="Porta HTTP"
+                  type="number"
+                  size="small"
+                  fullWidth
+                  value={newDvrData.httpPort}
+                  onChange={(e) => setNewDvrData({ ...newDvrData, httpPort: Number(e.target.value) })}
+                  sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                />
+              </Grid>
+              <Grid item xs={4}>
+                <TextField
+                  label="Porta RTSP"
+                  type="number"
+                  size="small"
+                  fullWidth
+                  value={newDvrData.rtspPort}
+                  onChange={(e) => setNewDvrData({ ...newDvrData, rtspPort: Number(e.target.value) })}
+                  sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                />
+              </Grid>
+              <Grid item xs={4}>
+                <Typography variant="caption" color="#94A3B8" display="block" mb={0.5}>
+                  Canais
+                </Typography>
+                <Select
+                  size="small"
+                  fullWidth
+                  value={newDvrData.channelsCount}
+                  onChange={(e) => setNewDvrData({ ...newDvrData, channelsCount: Number(e.target.value) })}
+                  sx={{ bgcolor: '#1E293B', color: '#F8FAFC', fieldset: { borderColor: '#334155' } }}
+                >
+                  <MenuItem value={4}>4 Canais</MenuItem>
+                  <MenuItem value={8}>8 Canais</MenuItem>
+                  <MenuItem value={16}>16 Canais</MenuItem>
+                  <MenuItem value={32}>32 Canais</MenuItem>
+                </Select>
+              </Grid>
+            </Grid>
+
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <TextField
+                  label="Usuário DVR"
+                  size="small"
+                  fullWidth
+                  value={newDvrData.user}
+                  onChange={(e) => setNewDvrData({ ...newDvrData, user: e.target.value })}
+                  sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  label="Senha DVR"
+                  type="password"
+                  size="small"
+                  fullWidth
+                  value={newDvrData.password}
+                  onChange={(e) => setNewDvrData({ ...newDvrData, password: e.target.value })}
+                  sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                />
+              </Grid>
+            </Grid>
+          </Stack>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, borderTop: '1px solid #1E293B', justifyContent: 'space-between' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<NetworkCheckIcon />}
+            onClick={() => handleTestConnection('preview')}
+            sx={{ color: '#38BDF8', borderColor: '#334155', textTransform: 'none' }}
+          >
+            Testar Conexão
+          </Button>
+
+          <Stack direction="row" spacing={1}>
+            <Button onClick={() => setOpenAddDvrModal(false)} sx={{ color: '#94A3B8', textTransform: 'none' }}>
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleCreateDvr}
+              disabled={provisioning}
+              startIcon={provisioning ? <CircularProgress size={14} color="inherit" /> : null}
+              sx={{ bgcolor: '#38BDF8', color: '#0F172A', fontWeight: 700, textTransform: 'none' }}
+            >
+              {provisioning ? 'Provisionando Canais...' : 'Salvar DVR'}
+            </Button>
+          </Stack>
+        </DialogActions>
+      </Dialog>
 
       {/* Modal Resultado do Teste de DVR */}
       <Dialog open={Boolean(testResult)} onClose={() => setTestResult(null)} maxWidth="xs" fullWidth PaperProps={{ sx: { bgcolor: '#0F172A', color: '#F8FAFC', borderRadius: 3 } }}>
