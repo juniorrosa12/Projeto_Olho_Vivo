@@ -13,6 +13,7 @@ import {
   IconButton,
   Stack,
   Alert,
+  Paper,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';

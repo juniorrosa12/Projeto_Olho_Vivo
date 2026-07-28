@@ -11,9 +11,13 @@ import {
   DialogTitle,
   DialogContent,
   IconButton,
+  Button,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import {
   CartesianGrid,
   Line,
@@ -23,6 +27,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useTriageStore } from '../../../infrastructure/stores/useTriageStore';
 
 const API = `${window.location.protocol}//${window.location.hostname}:8000`;
 
@@ -36,111 +41,113 @@ function formatElapsed(value) {
 }
 
 export default function AuditMetricsDashboardContainer() {
+  const navigate = useNavigate();
+  const { setInspectedEvent } = useTriageStore();
   const [dashboardData, setDashboardData] = useState(null);
   const [hourlyData, setHourlyData] = useState([]);
   const [recentEvents, setRecentEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // Poll Real-Time API Data
+  const loadData = async () => {
+    try {
+      const [dashRes, hourRes, eventsRes] = await Promise.all([
+        axios.get(`${API}/events/dashboard`),
+        axios.get(`${API}/statistics/hour`),
+        axios.get(`${API}/events?limit=10`),
+      ]);
+
+      setDashboardData(dashRes.data);
+      setHourlyData(
+        hourRes.data.map((item) => ({
+          hora: String(item.hour).padStart(2, '0'),
+          entradas: item.entries,
+          saidas: item.exits,
+        }))
+      );
+      setRecentEvents(eventsRes.data);
+    } catch {
+      // Fallback gracioso para visualização offline
+      setDashboardData({
+        people_now: 12,
+        entries: 2480,
+        exits: 2310,
+        phones: 3,
+        pending: 9660,
+        approved: 1256,
+        rejected: 135,
+      });
+      setHourlyData([
+        { hora: '08', entradas: 120, saidas: 80 },
+        { hora: '10', entradas: 340, saidas: 290 },
+        { hora: '12', entradas: 520, saidas: 480 },
+        { hora: '14', entradas: 410, saidas: 390 },
+        { hora: '16', entradas: 680, saidas: 610 },
+        { hora: '18', entradas: 410, saidas: 460 },
+      ]);
+      setRecentEvents([
+        {
+          id: 'evt-9660',
+          event_type: 'cell_phone',
+          event_time: new Date().toISOString(),
+          track_id: 1,
+          filial_id: 'RIUAL_027',
+          camera_id: 'CAM01',
+          snapshot: '/static/output/latest.jpg',
+        },
+      ]);
+    }
+  };
+
   useEffect(() => {
-    const loadDashboard = async () => {
-      try {
-        const res = await axios.get(`${API}/events/dashboard`);
-        setDashboardData(res.data);
-      } catch (err) {
-        // Fallback for offline dev
-        setDashboardData({
-          people_now: 12,
-          entries: 2480,
-          exits: 2310,
-          phones: 3,
-          pending: 9660,
-          approved: 1256,
-          rejected: 135,
-        });
-      }
-    };
-
-    const loadHourly = async () => {
-      try {
-        const res = await axios.get(`${API}/statistics/hour`);
-        setHourlyData(
-          res.data.map((item) => ({
-            hora: String(item.hour).padStart(2, '0'),
-            entradas: item.entries,
-            saidas: item.exits,
-          }))
-        );
-      } catch (err) {
-        setHourlyData([
-          { hora: '08', entradas: 120, saidas: 80 },
-          { hora: '10', entradas: 340, saidas: 290 },
-          { hora: '12', entradas: 520, saidas: 480 },
-          { hora: '14', entradas: 410, saidas: 390 },
-          { hora: '16', entradas: 680, saidas: 610 },
-          { hora: '18', entradas: 410, saidas: 460 },
-        ]);
-      }
-    };
-
-    const loadRecentEvents = async () => {
-      try {
-        const res = await axios.get(`${API}/events?limit=10`);
-        setRecentEvents(res.data);
-      } catch (err) {
-        setRecentEvents([
-          {
-            id: 'evt-1',
-            event_type: 'cell_phone',
-            event_time: new Date().toISOString(),
-            track_id: 1,
-            filial_id: 'RIUAL_027',
-            camera_id: 'CAM01',
-            snapshot: '/static/output/latest.jpg',
-          },
-        ]);
-      }
-    };
-
-    loadDashboard();
-    loadHourly();
-    loadRecentEvents();
-
-    const timer = setInterval(() => {
-      loadDashboard();
-      loadHourly();
-      loadRecentEvents();
-    }, 3000);
-
+    loadData();
+    const timer = setInterval(loadData, 3000);
     return () => clearInterval(timer);
   }, []);
 
   const kpiCards = useMemo(() => {
     if (!dashboardData) return [];
     return [
-      { key: 'people_now', label: 'Pessoas Agora', value: dashboardData.people_now ?? 0, color: '#38BDF8', badge: 'LIVE' },
-      { key: 'entries', label: 'Entradas Hoje', value: dashboardData.entries ?? 0, color: '#10B981', badge: 'HOJE' },
-      { key: 'exits', label: 'Saídas Hoje', value: dashboardData.exits ?? 0, color: '#F59E0B', badge: 'HOJE' },
+      { key: 'people_now', label: 'Pessoas na Loja Agora', value: dashboardData.people_now ?? 0, color: '#38BDF8', badge: 'LIVE' },
+      { key: 'entries', label: 'Entradas de Clientes', value: dashboardData.entries ?? 0, color: '#10B981', badge: 'HOJE' },
+      { key: 'exits', label: 'Saídas de Clientes', value: dashboardData.exits ?? 0, color: '#F59E0B', badge: 'HOJE' },
       { key: 'phones', label: 'Celulares no Caixa', value: dashboardData.phones ?? 0, color: '#EF4444', badge: 'ALERTA' },
-      { key: 'pending', label: 'Pendentes Fila', value: dashboardData.pending ?? 0, color: '#F59E0B', badge: 'FILA' },
-      { key: 'approved', label: 'Validados Aprovados', value: dashboardData.approved ?? 0, color: '#10B981', badge: 'ACTIVE LEARNING' },
-      { key: 'rejected', label: 'Rejeitados (Falso Positivo)', value: dashboardData.rejected ?? 0, color: '#EF4444', badge: 'FALSO POSITIVO' },
+      { key: 'pending', label: 'Eventos Pendentes', value: dashboardData.pending ?? 0, color: '#F59E0B', badge: 'FILA' },
+      { key: 'approved', label: 'Validados Aprovados', value: dashboardData.approved ?? 0, color: '#10B981', badge: 'TREINO IA' },
+      { key: 'rejected', label: 'Rejeitados (Falso Positivo)', value: dashboardData.rejected ?? 0, color: '#EF4444', badge: 'AUDITORIA' },
     ];
   }, [dashboardData]);
 
+  const handleInspect = (evt) => {
+    setInspectedEvent(evt);
+    sessionStorage.setItem('inspect_event_id', evt.id);
+    navigate('/validation');
+  };
+
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: '#020617', minHeight: '100vh', color: '#F8FAFC' }}>
-      {/* 1. Cabeçalho Executivo do Dashboard */}
-      <Box mb={3}>
-        <Typography variant="h5" fontWeight={700} sx={{ color: '#F8FAFC', letterSpacing: -0.5 }}>
-          Painel de Inteligência Operacional & Monitoramento de Varejo
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#94A3B8' }}>
-          Métricas em tempo real de ocupação da loja, fluxo de pessoas, alertas comportamentais e validação de IA
-        </Typography>
+      {/* Header Executivo */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap" gap={2}>
+        <Box>
+          <Typography variant="h5" fontWeight={700} sx={{ color: '#F8FAFC', letterSpacing: -0.5 }}>
+            Painel de Inteligência Operacional & Monitoramento
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+            Visão consolidada do fluxo de loja, detecções comportamentais da IA e validações da equipe
+          </Typography>
+        </Box>
+
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={loadData}
+          sx={{ color: '#38BDF8', borderColor: '#0284C7', textTransform: 'none' }}
+        >
+          Atualizar Dados
+        </Button>
       </Box>
 
-      {/* 2. Grid de Cards de Estatísticas Integrados (StatsGrid) */}
+      {/* Grid de KPIs Primários */}
       <Grid container spacing={2.5} mb={4}>
         {kpiCards.map((card) => (
           <Grid item xs={12} sm={6} md={4} lg={3} key={card.key}>
@@ -180,18 +187,18 @@ export default function AuditMetricsDashboardContainer() {
         ))}
       </Grid>
 
-      {/* 3. Gráfico de Fluxo Por Hora (Timeline Recharts com Dark Theme) */}
+      {/* Gráfico Recharts de Fluxo por Hora */}
       <Paper elevation={0} sx={{ p: 3, bgcolor: '#0F172A', border: '1px solid #1E293B', borderRadius: 2.5, mb: 4 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" mb={2}>
           <Box>
             <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#F8FAFC' }}>
-              Fluxo de Pessoas por Hora (Entradas vs. Saídas)
+              Fluxo de Clientes por Hora (Entradas vs. Saídas)
             </Typography>
             <Typography variant="caption" sx={{ color: '#94A3B8' }}>
-              Dados acumulados das câmeras de entrada e saída com atualização em tempo real
+              Sincronizado continuamente com a pipeline de Visão Computacional
             </Typography>
           </Box>
-          <Chip label="ATUALIZAÇÃO AO VIVO (5s)" size="small" sx={{ bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#6EE7B7', fontWeight: 700 }} />
+          <Chip label="ONLINE 3s" size="small" sx={{ bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#6EE7B7', fontWeight: 700 }} />
         </Stack>
 
         <ResponsiveContainer width="100%" height={300}>
@@ -206,10 +213,10 @@ export default function AuditMetricsDashboardContainer() {
         </ResponsiveContainer>
       </Paper>
 
-      {/* 4. Lista de Últimos Eventos em Tempo Real (LiveEvents) */}
+      {/* Lista de Últimos Eventos Detectados */}
       <Paper elevation={0} sx={{ p: 3, bgcolor: '#0F172A', border: '1px solid #1E293B', borderRadius: 2.5 }}>
         <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#F8FAFC', mb: 2 }}>
-          Últimos Eventos Detectados em Tempo Real
+          Últimas Ocorrências em Tempo Real
         </Typography>
 
         <Grid container spacing={2}>
@@ -217,13 +224,14 @@ export default function AuditMetricsDashboardContainer() {
             <Grid item xs={12} md={6} key={evt.id}>
               <Paper
                 elevation={0}
-                onClick={() => setSelectedEvent(evt)}
                 sx={{
                   p: 2,
                   bgcolor: '#1E293B',
                   border: '1px solid #334155',
                   borderRadius: 2,
-                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
                   transition: 'all 0.15s ease',
                   '&:hover': { borderColor: '#38BDF8', bgcolor: '#243044' },
                 }}
@@ -232,7 +240,7 @@ export default function AuditMetricsDashboardContainer() {
                   <Avatar sx={{ bgcolor: evt.event_type === 'cell_phone' ? 'rgba(239,68,68,0.2)' : 'rgba(56,189,248,0.2)', color: evt.event_type === 'cell_phone' ? '#EF4444' : '#38BDF8' }}>
                     {evt.event_type === 'cell_phone' ? '📱' : '👤'}
                   </Avatar>
-                  <Box sx={{ flexGrow: 1 }}>
+                  <Box>
                     <Stack direction="row" spacing={1} alignItems="center" mb={0.5}>
                       <Typography fontWeight={700} sx={{ color: '#F8FAFC' }}>
                         {evt.event_type === 'cell_phone' ? 'Uso de Celular no Caixa' : evt.event_type}
@@ -244,37 +252,21 @@ export default function AuditMetricsDashboardContainer() {
                     </Typography>
                   </Box>
                 </Stack>
+
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<VisibilityIcon sx={{ fontSize: 14 }} />}
+                  onClick={() => handleInspect(evt)}
+                  sx={{ color: '#38BDF8', borderColor: '#0284C7', textTransform: 'none', ml: 1 }}
+                >
+                  Inspecionar
+                </Button>
               </Paper>
             </Grid>
           ))}
         </Grid>
       </Paper>
-
-      {/* Modal de Inspeção Rápida de Evento */}
-      <Dialog open={Boolean(selectedEvent)} onClose={() => setSelectedEvent(null)} maxWidth="md" fullWidth PaperProps={{ sx: { bgcolor: '#0F172A', color: '#F8FAFC', border: '1px solid #1E293B', borderRadius: 3 } }}>
-        {selectedEvent && (
-          <>
-            <Box display="flex" justifyContent="space-between" alignItems="center" p={2} borderBottom="1px solid #1E293B">
-              <Typography variant="h6" fontWeight={700}>
-                Inspeção de Evento: {selectedEvent.event_type}
-              </Typography>
-              <IconButton size="small" onClick={() => setSelectedEvent(null)} sx={{ color: '#94A3B8' }}>
-                <CloseIcon />
-              </IconButton>
-            </Box>
-            <DialogContent dividers sx={{ borderColor: '#1E293B' }}>
-              {selectedEvent.snapshot && (
-                <Box mb={2}>
-                  <Typography variant="subtitle2" sx={{ color: '#38BDF8', mb: 1 }}>
-                    Snapshot Capturado
-                  </Typography>
-                  <img src={`${API}${selectedEvent.snapshot}?t=${Date.now()}`} alt="Snapshot" style={{ width: '100%', borderRadius: 8, maxHeight: 400, objectFit: 'cover' }} />
-                </Box>
-              )}
-            </DialogContent>
-          </>
-        )}
-      </Dialog>
     </Box>
   );
 }

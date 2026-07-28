@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Paper, Box, Typography, Chip, Stack, IconButton, Tooltip } from '@mui/material';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
@@ -9,16 +9,26 @@ const API = `${window.location.protocol}//${window.location.hostname}:8000`;
 export default function CameraStreamCard({ camera, onFocus }) {
   const isOnline = camera.status === 'ONLINE';
   const [frameUrl, setFrameUrl] = useState('');
+  const [videoError, setVideoError] = useState(false);
+  const videoRef = useRef(null);
 
-  const videoSrc = camera.video
-    ? (camera.video.startsWith('http') || camera.video.startsWith('/')
-        ? (camera.video.startsWith('http') ? camera.video : `${API}${camera.video}`)
-        : `${API}/static/${camera.video}`)
-    : null;
+  const getVideoSrc = () => {
+    if (!camera.video) return null;
+    if (camera.video.startsWith('http')) return camera.video;
+    if (camera.video.startsWith('/videos/') || camera.video.startsWith('videos/')) {
+      return camera.video.startsWith('/') ? camera.video : `/${camera.video}`;
+    }
+    if (camera.video.startsWith('/static/')) {
+      return `${API}${camera.video}`;
+    }
+    return `${API}/static/${camera.video}`;
+  };
 
-  // Atualização em Tempo Real do Frame de Imagem (Caso não seja vídeo MP4)
+  const videoSrc = getVideoSrc();
+
+  // Atualização em Tempo Real do Frame de Imagem (Caso não haja vídeo ou o vídeo falhe)
   useEffect(() => {
-    if (videoSrc) return;
+    if (videoSrc && !videoError) return;
 
     const updateFrame = () => {
       const timestamp = Date.now();
@@ -32,7 +42,20 @@ export default function CameraStreamCard({ camera, onFocus }) {
     updateFrame();
     const interval = setInterval(updateFrame, 1000);
     return () => clearInterval(interval);
-  }, [camera.snapshot, videoSrc]);
+  }, [camera.snapshot, videoSrc, videoError]);
+
+  // Garante a execução do video.play() no carregamento
+  useEffect(() => {
+    if (videoRef.current && videoSrc && !videoError) {
+      videoRef.current.play().catch(() => {
+        // Se a política do navegador bloquear autoplay com som, tenta mutar e dar play
+        if (videoRef.current) {
+          videoRef.current.muted = true;
+          videoRef.current.play().catch(() => setVideoError(true));
+        }
+      });
+    }
+  }, [videoSrc, videoError]);
 
   return (
     <Paper
@@ -103,13 +126,15 @@ export default function CameraStreamCard({ camera, onFocus }) {
           overflow: 'hidden',
         }}
       >
-        {videoSrc ? (
+        {videoSrc && !videoError ? (
           <video
+            ref={videoRef}
             src={videoSrc}
             autoPlay
             loop
             muted
             playsInline
+            onError={() => setVideoError(true)}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : frameUrl ? (
