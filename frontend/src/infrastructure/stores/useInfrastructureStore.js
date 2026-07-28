@@ -99,8 +99,18 @@ export const useInfrastructureStore = create((set, get) => ({
     },
   ],
 
-  // Ações de Cadastro e Teste via Device Manager
-  addDvr: (newDvr) => set((state) => ({ dvrs: [...state.dvrs, { ...newDvr, id: `dvr-${Date.now()}` }] })),
+  addDvr: (newDvr) => set((state) => ({ dvrs: [...state.dvrs, { ...newDvr, id: newDvr.id || `dvr-${Date.now()}` }] })),
+
+  updateDvr: (updatedDvr) =>
+    set((state) => ({
+      dvrs: state.dvrs.map((d) => (d.id === updatedDvr.id ? { ...d, ...updatedDvr } : d)),
+    })),
+
+  deleteDvr: (dvrId) =>
+    set((state) => ({
+      dvrs: state.dvrs.filter((d) => d.id !== dvrId),
+      cameras: state.cameras.filter((c) => c.dvrId !== dvrId),
+    })),
 
   addCamera: (newCamera) => {
     const dvr = get().dvrs.find((d) => d.id === newCamera.dvrId);

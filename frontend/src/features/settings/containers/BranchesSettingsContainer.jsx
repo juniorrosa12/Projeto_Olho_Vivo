@@ -20,6 +20,8 @@ import {
   IconButton,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import StoreIcon from '@mui/icons-material/Store';
 import RouterIcon from '@mui/icons-material/Router';
 import VideocamIcon from '@mui/icons-material/Videocam';
@@ -35,15 +37,17 @@ import InteractiveOperationalMap from '../../infrastructure/containers/Interacti
 
 export default function BranchesSettingsContainer() {
   const [activeTab, setActiveTab] = useState(0);
-  const { branches, dvrs, cameras, testDvrConnection, addDvr, addCamera } = useInfrastructureStore();
+  const { branches, dvrs, cameras, testDvrConnection, addDvr, updateDvr, deleteDvr, addCamera } = useInfrastructureStore();
 
   const [testResult, setTestResult] = useState(null);
   const [testingDvrId, setTestingDvrId] = useState(null);
 
-  // Form de Novo DVR (BUG 02 + Sprint 25 Auto-Provision)
+  // Form de Novo/Editar DVR
   const [openAddDvrModal, setOpenAddDvrModal] = useState(false);
+  const [editingDvrId, setEditingDvrId] = useState(null);
   const [provisioning, setProvisioning] = useState(false);
-  const [newDvrData, setNewDvrData] = useState({
+
+  const initialDvrState = {
     name: '',
     manufacturer: 'HIKVISION',
     model: 'DS-7608NI-K2',
@@ -54,7 +58,21 @@ export default function BranchesSettingsContainer() {
     password: '',
     channelsCount: 8,
     branchId: 'br-1',
-  });
+  };
+
+  const [newDvrData, setNewDvrData] = useState(initialDvrState);
+
+  const handleOpenCreateModal = () => {
+    setEditingDvrId(null);
+    setNewDvrData(initialDvrState);
+    setOpenAddDvrModal(true);
+  };
+
+  const handleOpenEditModal = (dvr) => {
+    setEditingDvrId(dvr.id);
+    setNewDvrData({ ...dvr });
+    setOpenAddDvrModal(true);
+  };
 
   const handleTestConnection = async (dvrId) => {
     setTestingDvrId(dvrId);
@@ -64,36 +82,59 @@ export default function BranchesSettingsContainer() {
     setTestResult(result);
   };
 
-  const handleCreateDvr = async () => {
+  const handleSaveDvr = async () => {
     if (!newDvrData.name) {
       alert('Por favor, informe o nome do DVR.');
       return;
     }
-    setProvisioning(true);
-    const dvrObj = { ...newDvrData, id: `dvr-${Date.now()}` };
-    addDvr(dvrObj);
 
-    // Auto-provisionamento de canais de câmera (Sprint 25)
-    try {
-      await DvrProvisioner.provisionDvr(dvrObj, (newCam) => addCamera(newCam));
-    } catch {
-      // Continua gravação mesmo que a varredura remota timeout
-    } finally {
-      setProvisioning(false);
+    if (editingDvrId) {
+      updateDvr({ ...newDvrData, id: editingDvrId });
       setOpenAddDvrModal(false);
+      setEditingDvrId(null);
+    } else {
+      setProvisioning(true);
+      const dvrObj = { ...newDvrData, id: `dvr-${Date.now()}` };
+      addDvr(dvrObj);
+
+      try {
+        await DvrProvisioner.provisionDvr(dvrObj, (newCam) => addCamera(newCam));
+      } catch {
+        // Fallback
+      } finally {
+        setProvisioning(false);
+        setOpenAddDvrModal(false);
+      }
+    }
+  };
+
+  const handleDeleteDvr = (dvrId) => {
+    if (window.confirm('Tem certeza que deseja excluir este DVR?')) {
+      deleteDvr(dvrId);
     }
   };
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: '#020617', minHeight: '100vh', color: '#F8FAFC' }}>
-      {/* Header */}
-      <Box mb={3}>
-        <Typography variant="h5" fontWeight={700} sx={{ color: '#F8FAFC', letterSpacing: -0.5 }}>
-          Infraestrutura Multi-Filial, DVRs & Rede Tailscale Mesh
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#94A3B8' }}>
-          Gerenciamento centralizado de filiais, conectividade VPN Tailscale, cadastro de DVRs e auto-geração de URLs RTSP
-        </Typography>
+      {/* Header Principal com Botão de Ação Destacado */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2} mb={3}>
+        <Box>
+          <Typography variant="h5" fontWeight={700} sx={{ color: '#F8FAFC', letterSpacing: -0.5 }}>
+            Infraestrutura Multi-Filial, DVRs & Rede Tailscale Mesh
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+            Gerenciamento centralizado de filiais, conectividade VPN Tailscale, cadastro de DVRs e auto-geração de URLs RTSP
+          </Typography>
+        </Box>
+
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleOpenCreateModal}
+          sx={{ bgcolor: '#38BDF8', color: '#0F172A', fontWeight: 700, textTransform: 'none', px: 2.5, py: 1 }}
+        >
+          Cadastrar DVR
+        </Button>
       </Box>
 
       {/* Tabs */}
@@ -166,7 +207,7 @@ export default function BranchesSettingsContainer() {
               variant="contained"
               size="small"
               startIcon={<AddIcon />}
-              onClick={() => setOpenAddDvrModal(true)}
+              onClick={handleOpenCreateModal}
               sx={{ bgcolor: '#38BDF8', color: '#0F172A', fontWeight: 700, textTransform: 'none' }}
             >
               Cadastrar DVR
@@ -191,7 +232,15 @@ export default function BranchesSettingsContainer() {
                         </Typography>
                       </Box>
                     </Stack>
-                    <Chip label={dvr.status} size="small" sx={{ bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#6EE7B7', fontWeight: 700 }} />
+
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <IconButton size="small" onClick={() => handleOpenEditModal(dvr)} sx={{ color: '#38BDF8' }}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" onClick={() => handleDeleteDvr(dvr.id)} sx={{ color: '#EF4444' }}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
                   </Box>
 
                   <Stack spacing={1} mb={2} sx={{ bgcolor: '#1E293B', p: 2, borderRadius: 2 }}>
@@ -253,13 +302,13 @@ export default function BranchesSettingsContainer() {
         </Grid>
       )}
 
-      {/* ABA 3: Telemetria da Infraestrutura (Sprint 27) */}
+      {/* ABA 3: Telemetria */}
       {activeTab === 3 && <OperationalTelemetryDashboard />}
 
-      {/* ABA 4: Mapa Operacional Interativo (Sprint 28) */}
+      {/* ABA 4: Mapa Operacional */}
       {activeTab === 4 && <InteractiveOperationalMap />}
 
-      {/* MODAL BUG 02: Cadastrar DVR Profissional */}
+      {/* MODAL: Cadastrar / Editar DVR */}
       <Dialog
         open={openAddDvrModal}
         onClose={() => setOpenAddDvrModal(false)}
@@ -271,7 +320,7 @@ export default function BranchesSettingsContainer() {
       >
         <DialogTitle display="flex" justifyContent="space-between" alignItems="center" borderBottom="1px solid #1E293B">
           <Typography variant="h6" fontWeight={700}>
-            Cadastrar Novo DVR de Loja
+            {editingDvrId ? 'Editar DVR de Loja' : 'Cadastrar Novo DVR de Loja'}
           </Typography>
           <IconButton size="small" onClick={() => setOpenAddDvrModal(false)} sx={{ color: '#94A3B8' }}>
             <CloseIcon />
@@ -440,12 +489,12 @@ export default function BranchesSettingsContainer() {
             </Button>
             <Button
               variant="contained"
-              onClick={handleCreateDvr}
+              onClick={handleSaveDvr}
               disabled={provisioning}
               startIcon={provisioning ? <CircularProgress size={14} color="inherit" /> : null}
               sx={{ bgcolor: '#38BDF8', color: '#0F172A', fontWeight: 700, textTransform: 'none' }}
             >
-              {provisioning ? 'Provisionando Canais...' : 'Salvar DVR'}
+              {provisioning ? 'Provisionando Canais...' : editingDvrId ? 'Atualizar DVR' : 'Salvar DVR'}
             </Button>
           </Stack>
         </DialogActions>

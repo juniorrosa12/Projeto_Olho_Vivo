@@ -122,7 +122,7 @@ export default function MultiCameraLiveGridContainer() {
       {/* Painel Lateral de Alertas em Tempo Real */}
       <LiveAlertSidebar alerts={realtimeAlerts} onSelectAlert={setFocusedCameraId} />
 
-      {/* Modal de Câmera Focada em Tela Cheia */}
+      {/* Modal de Câmera Focada em Tela Cheia (Reutilizando CameraStreamCard com ROI e BBoxes) */}
       <Dialog
         open={Boolean(focusedCameraId)}
         onClose={() => setFocusedCameraId(null)}
@@ -136,19 +136,15 @@ export default function MultiCameraLiveGridContainer() {
           <Box sx={{ p: 2 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
               <Typography variant="h6" fontWeight={700}>
-                {focusedCamera.name} ({focusedCamera.filial})
+                Monitoramento Expandido em Alta Definição: {focusedCamera.name}
               </Typography>
               <IconButton size="small" onClick={() => setFocusedCameraId(null)} sx={{ color: '#94A3B8' }}>
                 <CloseIcon />
               </IconButton>
             </Box>
-            <Box sx={{ width: '100%', height: 500, bgcolor: '#000000', borderRadius: 2, overflow: 'hidden' }}>
-              <img
-                src={focusedCamera.snapshot}
-                alt={focusedCamera.name}
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-            </Box>
+
+            {/* Reutilização Exata do Componente CameraStreamCard com Suporte a ROI e Bounding Boxes */}
+            <CameraStreamCard camera={focusedCamera} isExpanded onFocus={() => {}} />
           </Box>
         )}
       </Dialog>

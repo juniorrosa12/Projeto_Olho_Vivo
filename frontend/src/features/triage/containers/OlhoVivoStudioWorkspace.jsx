@@ -42,8 +42,9 @@ export default function OlhoVivoStudioWorkspace({
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        height: '100vh',
-        width: '100vw',
+        height: '100%',
+        width: '100%',
+        minHeight: 'calc(100vh - 70px)',
         bgcolor: '#020617',
         overflow: 'hidden',
         userSelect: 'none',
@@ -61,7 +62,7 @@ export default function OlhoVivoStudioWorkspace({
           position: 'relative',
         }}
       >
-        {/* Canvas Principal (80% da tela) */}
+        {/* Canvas Principal */}
         <Box
           sx={{
             flex: 1,
@@ -107,11 +108,11 @@ export default function OlhoVivoStudioWorkspace({
           )}
         </Box>
 
-        {/* Sidebar de Inspeção de Objetos e Metadados (Width: 320px) */}
+        {/* Sidebar de Inspeção de Objetos e Metadados */}
         <ObjectInspectorSidebar event={event} />
       </Box>
 
-      {/* 3. Dock Inferior de Ação Rápida (Height: 56px) */}
+      {/* 3. Dock Inferior de Ação Rápida */}
       <TriageActionDock
         onApprove={onApprove}
         onReject={onReject}
