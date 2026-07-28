@@ -12,31 +12,15 @@ export default function ObjectAnnotator({
   image,
   boxes = [],
   width = 960,
+  selectedId,
   onChange,
+  onSelect,
 }) {
   const [img] = useImage(image);
-
-  const [items, setItems] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
-
   const [drawing, setDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState(null);
-
   const transformerRef = useRef();
   const stageRef = useRef();
-
-  useEffect(() => {
-    const normalized = (boxes || []).map((box, index) => ({
-      id: `${Date.now()}-${Math.random()}`,
-      class: box.class ?? "person",
-      x: box.x ?? box[0] ?? 0,
-      y: box.y ?? box[1] ?? 0,
-      width: box.width ?? box.w ?? box[2] ?? 0,
-      height: box.height ?? box.h ?? box[3] ?? 0,
-    }));
-
-    setItems(normalized);
-  }, [boxes]);
 
   useEffect(() => {
     if (!transformerRef.current) return;
@@ -46,86 +30,67 @@ export default function ObjectAnnotator({
 
     transformerRef.current.nodes(node ? [node] : []);
     transformerRef.current.getLayer().batchDraw();
-  }, [selectedId, items]);
+  }, [selectedId, boxes]);
 
   useEffect(() => {
-    const keyDown = (e) => {
-      if (e.key !== "Delete") return;
-      if (!selectedId) return;
+    const keyDown = (event) => {
+      if (event.key !== "Delete" || !selectedId) return;
 
-      const next = items.filter((i) => i.id !== selectedId);
-
-      setItems(next);
-      setSelectedId(null);
-
+      const next = boxes.filter((box) => box.id !== selectedId);
       onChange?.(next);
+      onSelect?.(null);
     };
 
     window.addEventListener("keydown", keyDown);
-
     return () => window.removeEventListener("keydown", keyDown);
-  }, [selectedId, items, onChange]);
+  }, [boxes, onChange, onSelect, selectedId]);
 
   if (!img) return null;
 
   const scale = width / img.width;
   const height = img.height * scale;
-
   const pointer = () => stageRef.current.getPointerPosition();
 
-  const mouseDown = (e) => {
-    if (e.target !== e.target.getStage()) return;
+  const mouseDown = (event) => {
+    if (event.target !== event.target.getStage()) return;
 
-    setSelectedId(null);
-
-    const p = pointer();
-
-    setDrawing(true);
-
-    setStartPoint({
-      x: p.x / scale,
-      y: p.y / scale,
-    });
-
+    const point = pointer();
     const newBox = {
-      id: `${Date.now()}-${Math.random()}`,
+      id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       class: "person",
-      x: p.x / scale,
-      y: p.y / scale,
+      x: point.x / scale,
+      y: point.y / scale,
       width: 1,
       height: 1,
     };
 
-    setItems((old) => [...old, newBox]);
-    setSelectedId(newBox.id);
+    setDrawing(true);
+    setStartPoint({ x: newBox.x, y: newBox.y });
+    onChange?.([...boxes, newBox]);
+    onSelect?.(newBox.id);
   };
 
   const mouseMove = () => {
-    if (!drawing) return;
+    if (!drawing || !startPoint || !selectedId) return;
 
-    const p = pointer();
-
-    setItems((old) =>
-      old.map((box) => {
-        if (box.id !== selectedId) return box;
-
-        return {
-          ...box,
-          x: Math.min(startPoint.x, p.x / scale),
-          y: Math.min(startPoint.y, p.y / scale),
-          width: Math.abs(p.x / scale - startPoint.x),
-          height: Math.abs(p.y / scale - startPoint.y),
-        };
-      })
+    const point = pointer();
+    onChange?.(
+      boxes.map((box) =>
+        box.id === selectedId
+          ? {
+              ...box,
+              x: Math.min(startPoint.x, point.x / scale),
+              y: Math.min(startPoint.y, point.y / scale),
+              width: Math.abs(point.x / scale - startPoint.x),
+              height: Math.abs(point.y / scale - startPoint.y),
+            }
+          : box
+      )
     );
   };
 
-  const mouseUp = () => {
-    if (!drawing) return;
-
-    setDrawing(false);
-
-    onChange?.(items);
+  const updateBox = (id, changes) => {
+    onChange?.(boxes.map((box) => (box.id === id ? { ...box, ...changes } : box)));
   };
 
   return (
@@ -135,18 +100,14 @@ export default function ObjectAnnotator({
       height={height}
       onMouseDown={mouseDown}
       onMouseMove={mouseMove}
-      onMouseUp={mouseUp}
+      onMouseUp={() => setDrawing(false)}
     >
       <Layer>
-        <KonvaImage
-          image={img}
-          width={width}
-          height={height}
-        />
+        <KonvaImage image={img} width={width} height={height} />
       </Layer>
 
       <Layer>
-        {items.map((box) => (
+        {boxes.map((box) => (
           <Rect
             key={box.id}
             id={`box-${box.id}`}
@@ -154,57 +115,35 @@ export default function ObjectAnnotator({
             y={box.y * scale}
             width={box.width * scale}
             height={box.height * scale}
-            stroke="#00ff55"
-            strokeWidth={2}
+            stroke={box.id === selectedId ? "#ffb300" : "#00ff55"}
+            strokeWidth={box.id === selectedId ? 4 : 2}
             draggable
-            onClick={() => setSelectedId(box.id)}
-            onTap={() => setSelectedId(box.id)}
-            onDragEnd={(e) => {
-              const next = items.map((b) =>
-                b.id === box.id
-                  ? {
-                      ...b,
-                      x: e.target.x() / scale,
-                      y: e.target.y() / scale,
-                    }
-                  : b
-              );
-
-              setItems(next);
-              onChange?.(next);
-            }}
-            onTransformEnd={(e) => {
-              const node = e.target;
-
-              const sx = node.scaleX();
-              const sy = node.scaleY();
+            onClick={() => onSelect?.(box.id)}
+            onTap={() => onSelect?.(box.id)}
+            onDragEnd={(event) =>
+              updateBox(box.id, {
+                x: event.target.x() / scale,
+                y: event.target.y() / scale,
+              })
+            }
+            onTransformEnd={(event) => {
+              const node = event.target;
+              const scaleX = node.scaleX();
+              const scaleY = node.scaleY();
 
               node.scaleX(1);
               node.scaleY(1);
-
-              const next = items.map((b) =>
-                b.id === box.id
-                  ? {
-                      ...b,
-                      x: node.x() / scale,
-                      y: node.y() / scale,
-                      width: (node.width() * sx) / scale,
-                      height: (node.height() * sy) / scale,
-                    }
-                  : b
-              );
-
-              setItems(next);
-              onChange?.(next);
+              updateBox(box.id, {
+                x: node.x() / scale,
+                y: node.y() / scale,
+                width: (node.width() * scaleX) / scale,
+                height: (node.height() * scaleY) / scale,
+              });
             }}
           />
         ))}
 
-        <Transformer
-          ref={transformerRef}
-          rotateEnabled={false}
-          keepRatio={false}
-        />
+        <Transformer ref={transformerRef} rotateEnabled={false} keepRatio={false} />
       </Layer>
     </Stage>
   );

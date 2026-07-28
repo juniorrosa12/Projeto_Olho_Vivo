@@ -1,0 +1,153 @@
+warning: in the working copy of 'frontend/src/components/annotation/ObjectAnnotator.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/components/validation/ValidationPanel.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/pages/Validation.jsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/.agente/BACKLOG.md b/.agente/BACKLOG.md[m
+[1mdeleted file mode 100644[m
+[1mindex 473049b..0000000[m
+[1m--- a/.agente/BACKLOG.md[m
+[1m+++ /dev/null[m
+[36m@@ -1,146 +0,0 @@[m
+[31m-# Backlog priorizado — Projeto Olho Vivo[m
+[31m-[m
+[31m-## Contexto[m
+[31m-[m
+[31m-O projeto apresenta uma base funcional de MVP com frontend em React/Vite, backend em FastAPI e um serviço de visão em Python para detecção e geração de eventos. A arquitetura atual já permite fluxo de vídeo → detecção → regras → evento → persistência, mas ainda carece de maturidade para operação em ambiente real, segurança, resiliência e escalabilidade.[m
+[31m-[m
+[31m-## Critérios de priorização[m
+[31m-[m
+[31m-- Impacto direto em segurança, operação e confiabilidade.[m
+[31m-- Dependência crítica para evolução do produto.[m
+[31m-- Benefício imediato para uso real e crescimento comercial.[m
+[31m-- Facilidade relativa de execução em etapas incrementais.[m
+[31m-[m
+[31m-## Backlog priorizado[m
+[31m-[m
+[31m-### P0 — Fundamentos de operação e segurança[m
+[31m-[m
+[31m-1. Externalizar configuração e segredos[m
+[31m-   - Substituir valores hardcoded de banco, portas, CORS e integrações por variáveis de ambiente.[m
+[31m-   - Separar configuração por ambiente (dev, staging, prod).[m
+[31m-[m
+[31m-2. Implementar autenticação e autorização[m
+[31m-   - Definir modelo de usuários, papéis e permissões para acesso ao dashboard e aos fluxos de validação.[m
+[31m-   - Proteger endpoints sensíveis.[m
+[31m-[m
+[31m-3. Definir modelo de negócio base[m
+[31m-   - Estruturar entidades como filiais, câmeras, usuários e permissões por contexto.[m
+[31m-   - Reduzir dependência de campos simples como filial_id e camera_id soltos.[m
+[31m-[m
+[31m-4. Desacoplar visão e backend[m
+[31m-   - Introduzir fila ou broker para eventos vindos da visão.[m
+[31m-   - Reduzir acoplamento direto entre os serviços e aumentar tolerância a falhas.[m
+[31m-[m
+[31m-### P1 — Estruturação arquitetural[m
+[31m-[m
+[31m-5. Melhorar organização do backend[m
+[31m-   - Separar responsabilidades entre rotas, serviços, repositórios e modelos de domínio.[m
+[31m-   - Evitar lógica de negócio espalhada em endpoints.[m
+[31m-[m
+[31m-6. Definir migrações de banco e versionamento de schema[m
+[31m-   - Estruturar alterações de banco de forma controlada e reprodutível.[m
+[31m-   - Evitar mudanças manuais e inconsistentes no PostgreSQL.[m
+[31m-[m
+[31m-7. Padronizar contratos de API[m
+[31m-   - Definir modelos de entrada e saída consistentes.[m
+[31m-   - Padronizar erros, status e respostas para frontend e integração.[m
+[31m-[m
+[31m-8. Melhorar observabilidade inicial[m
+[31m-   - Implementar logging estruturado, tracing básico e health checks mais completos.[m
+[31m-   - Facilitar diagnóstico de falhas e rastreabilidade operacional.[m
+[31m-[m
+[31m-### P2 — Robustez operacional[m
+[31m-[m
+[31m-9. Adicionar testes automatizados[m
+[31m-   - Cobrir endpoints principais do backend e fluxos críticos do pipeline.[m
+[31m-   - Incluir testes de regressão para eventos, validação e dashboard.[m
+[31m-[m
+[31m-10. Aumentar resiliência do pipeline[m
+[31m-   - Tratar falhas de rede, processamento e persistência sem interromper todo o fluxo.[m
+[31m-   - Adicionar retries, timeouts e recuperação básica de erros.[m
+[31m-[m
+[31m-11. Preparar suporte a múltiplas fontes de vídeo[m
+[31m-   - Projetar a arquitetura para aceitar mais de uma fonte de vídeo e múltiplos fluxos simultâneos.[m
+[31m-[m
+[31m-### P3 — Evolução de produto[m
+[31m-[m
+[31m-12. Aprimorar dashboard e validação[m
+[31m-   - Tornar a interface mais operável para supervisão e revisão de eventos.[m
+[31m-   - Melhorar experiência de uso para operadores.[m
+[31m-[m
+[31m-13. Criar auditoria e histórico operacional[m
+[31m-   - Registrar quem aprovou ou rejeitou eventos e quando.[m
+[31m-   - Facilitar rastreabilidade e governança.[m
+[31m-[m
+[31m-14. Expandir regras de análise e cenários de negócio[m
+[31m-   - Ampliar a capacidade do motor de regras para cenários mais próximos do uso real.[m
+[31m-[m
+[31m-## Ordem recomendada de execução[m
+[31m-[m
+[31m-1. Configuração externa e segurança.[m
+[31m-2. Autenticação e modelo de tenancy.[m
+[31m-3. Desacoplamento entre visão e backend.[m
+[31m-4. Observabilidade e testes iniciais.[m
+[31m-5. Organização arquitetural e migrações de banco.[m
+[31m-[m
+[31m-## Resumo executivo[m
+[31m-[m
+[31m-O projeto já possui uma base de MVP funcional, mas precisa de maturação arquitetural antes de estar pronto para operação mais robusta, segurança comercial e escalabilidade. O próximo passo mais valioso é fortalecer a camada de infraestrutura operacional e segurança, seguido do desacoplamento do fluxo de eventos.[m
+[31m-[m
+[31m-## Status atual[m
+[31m-[m
+[31m-- Sprint Central de Validação concluída com sucesso parcial: o fluxo principal de geração, persistência e retorno de eventos para validação foi estabilizado.[m
+[31m-- O pipeline agora produz eventos com snapshot e vídeo anexados, e a persistência no backend mantém esses campos para consumo do dashboard e da validação.[m
+[31m-- A próxima fase recomendada é consolidar configuração por ambiente, observabilidade e autenticação.[m
+[31m-[m
+[31m-## Próxima sprint — Sprint 1: Fundação operacional[m
+[31m-[m
+[31m-### Objetivo da sprint[m
+[31m-[m
+[31m-Consolidar a base operacional do projeto para reduzir riscos de execução, facilitar manutenção e preparar o caminho para evolução comercial.[m
+[31m-[m
+[31m-### Escopo recomendado[m
+[31m-[m
+[31m-1. Externalizar configuração e segredos[m
+[31m-   - Definir variáveis de ambiente para banco, portas, CORS e integrações.[m
+[31m-   - Remover dependência de valores fixos do código.[m
+[31m-[m
+[31m-2. Melhorar saúde operacional do sistema[m
+[31m-   - Definir endpoints de health check mais completos.[m
+[31m-   - Adicionar logging estruturado básico para os fluxos principais.[m
+[31m-[m
+[31m-3. Padronizar contratos de integração[m
+[31m-   - Documentar o formato esperado de eventos enviados pela visão para o backend.[m
+[31m-   - Definir respostas padrão para endpoints de eventos e validação.[m
+[31m-[m
+[31m-4. Preparar base para autenticação e tenancy[m
+[31m-   - Esboçar modelo de usuários, papéis e permissões por filial/câmera.[m
+[31m-   - Identificar pontos de entrada que precisam de proteção.[m
+[31m-[m
+[31m-### Itens priorizados para a sprint[m
+[31m-[m
+[31m-- P0: Externalizar configuração e segredos.[m
+[31m-- P0: Definir health checks e logging inicial.[m
+[31m-- P1: Documentar contratos de API e eventos.[m
+[31m-- P1: Definir modelo inicial de autenticação e permissões.[m
+[31m-[m
+[31m-### Entregáveis esperados[m
+[31m-[m
+[31m-- Configuração do sistema desacoplada do código.[m
+[31m-- Visibilidade básica de status do backend e do pipeline.[m
+[31m-- Documentação inicial de contratos e regras de acesso.[m
+[31m-- Plano técnico para a próxima fase de autenticação e desacoplamento.[m
+[31m-[m
+[31m-### Fora de escopo desta sprint[m
+[31m-[m
+[31m-- Implementação completa de autenticação.[m
+[31m-- Fila de mensageria robusta.[m
+[31m-- Migrações complexas de banco.[m
+[31m-- Expansão de regras de negócio ou produto.[m
+[31m-[m
+[31m-### Critérios de sucesso[m
+[31m-[m
+[31m-- O sistema pode ser configurado por ambiente sem alteração de código.[m
+[31m-- O time consegue diagnosticar falhas básicas mais ra

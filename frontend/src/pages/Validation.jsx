@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  Alert,
   Box,
   Stack,
   Grid,
@@ -11,12 +12,34 @@ import axios from "axios";
 import ObjectAnnotator from "../components/annotation/ObjectAnnotator";
 import VideoPlayer from "../components/validation/VideoPlayer";
 import ValidationPanel from "../components/validation/ValidationPanel";
+import { createAnnotation, deleteAnnotation } from "../api/annotations";
 
 const API = `${window.location.protocol}//${window.location.hostname}:8000`;
+
+const normalizeBoxes = (boxes = []) => {
+  const values = Array.isArray(boxes) ? boxes : [];
+  const detectedBoxes = values.length && !Array.isArray(values[0]) && typeof values[0] !== "object"
+    ? [values]
+    : values;
+
+  return detectedBoxes.map((box, index) => ({
+    id: box?.id ?? `detected-${index}`,
+    class: box?.class ?? box?.label ?? "person",
+    x: box?.x ?? box?.[0] ?? 0,
+    y: box?.y ?? box?.[1] ?? 0,
+    width: box?.width ?? box?.w ?? box?.[2] ?? 0,
+    height: box?.height ?? box?.h ?? box?.[3] ?? 0,
+  }));
+};
 
 export default function Validation() {
 
   const [event, setEvent] = useState(null);
+  const [annotations, setAnnotations] = useState([]);
+  const [selectedAnnotationId, setSelectedAnnotationId] = useState(null);
+  const [savedAnnotationIds, setSavedAnnotationIds] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -38,6 +61,11 @@ export default function Validation() {
       ]);
 
       setEvent(eventRes.data);
+      const detected = normalizeBoxes(eventRes.data?.bbox);
+      setAnnotations(detected);
+      setSelectedAnnotationId(detected[0]?.id ?? null);
+      setSavedAnnotationIds([]);
+      setSaveError("");
       setStats(statsRes.data);
 
     } finally {
@@ -66,6 +94,45 @@ export default function Validation() {
 
     }
 
+  };
+
+  const handleClassChange = (id, className) => {
+    setAnnotations((current) => current.map((item) => (
+      item.id === id ? { ...item, class: className } : item
+    )));
+  };
+
+  const handleDelete = (id) => {
+    setAnnotations((current) => current.filter((item) => item.id !== id));
+    if (selectedAnnotationId === id) setSelectedAnnotationId(null);
+  };
+
+  const handleSave = async () => {
+    if (!event?.track_id) {
+      setSaveError("Não foi possível salvar: o evento não possui um track associado.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setSaveError("");
+
+      await Promise.all(savedAnnotationIds.map((id) => deleteAnnotation(id)));
+      const created = await Promise.all(annotations.map((item) => createAnnotation({
+        track_id: event.track_id,
+        bbox: [item.x, item.y, item.width, item.height],
+        predicted_class: item.class,
+        corrected_class: item.class,
+        correction_scope: "frame",
+        metadata: { source: "manual_validation", object_id: item.id },
+      })));
+
+      setSavedAnnotationIds(created.map((response) => response.data.id));
+    } catch {
+      setSaveError("Não foi possível salvar as anotações. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   useEffect(() => {
@@ -144,9 +211,11 @@ export default function Validation() {
             <Grid item xs={12} lg={9}>
 
               <ObjectAnnotator
-                 image={`${API}${event.snapshot}?t=${Date.now()}`}
-                 boxes={event.bbox || []}
-                 onChange={setAnnotations}
+                image={`${API}${event.snapshot}?t=${event.id}`}
+                boxes={annotations}
+                selectedId={selectedAnnotationId}
+                onSelect={setSelectedAnnotationId}
+                onChange={setAnnotations}
               />
 
             </Grid>
@@ -156,6 +225,13 @@ export default function Validation() {
               <ValidationPanel
                 event={event}
                 loading={loading}
+                saving={saving}
+                annotations={annotations}
+                selectedId={selectedAnnotationId}
+                onSelect={setSelectedAnnotationId}
+                onClassChange={handleClassChange}
+                onDelete={handleDelete}
+                onSave={handleSave}
                 onApprove={() => handleDecision("approve")}
                 onReject={() => handleDecision("reject")}
               />
@@ -163,6 +239,8 @@ export default function Validation() {
             </Grid>
 
           </Grid>
+
+          {saveError && <Alert severity="error" onClose={() => setSaveError("")}>{saveError}</Alert>}
 
           <Box
             sx={{
@@ -179,7 +257,7 @@ export default function Validation() {
             >
 
               <VideoPlayer
-                src={`${API}${event.video}?t=${Date.now()}`}
+                src={`${API}${event.video}?t=${event.id}`}
               />
 
             </Box>
