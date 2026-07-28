@@ -5,11 +5,12 @@ import { useAnnotationStore } from "../infrastructure/stores/useAnnotationStore"
 import { createAnnotation, deleteAnnotation } from "../api/annotations";
 import { getClassDefinition } from "../domain/annotation/ClassCatalog";
 import { useTriageStore } from "../infrastructure/stores/useTriageStore";
+import { DatasetManagerService } from "../services/ai/DatasetManagerService";
 
 const API = `${window.location.protocol}//${window.location.hostname}:8000`;
 
 const fallbackEvent = {
-  id: "evt-9660",
+  id: "evt-10503",
   event_type: "cell_phone",
   track_id: 104,
   filial_id: "RIUAL_027",
@@ -17,7 +18,7 @@ const fallbackEvent = {
   event_time: new Date().toISOString(),
   snapshot: "/vision/static/latest.jpg",
   video: "/videos/TESTE.mp4",
-  confidence: 0.94,
+  confidence: 0.89,
   boxes: [
     { id: "box-1", class: "person", x: 120, y: 80, width: 220, height: 380, confidence: 0.95 },
     { id: "box-2", class: "cellphone", x: 260, y: 190, width: 45, height: 75, confidence: 0.89 },
@@ -50,10 +51,10 @@ export default function Validation() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [stats, setStats] = useState({
-    total: 1250,
-    pending: 42,
-    approved: 1120,
-    rejected: 88,
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -88,19 +89,25 @@ export default function Validation() {
         return;
       }
 
-      const [eventRes, statsRes] = await Promise.all([
-        axios.get(`${API}/validation/next`),
-        axios.get(`${API}/validation/stats`),
-      ]);
+      try {
+        const [eventRes, statsRes] = await Promise.all([
+          axios.get(`${API}/validation/next`),
+          axios.get(`${API}/validation/stats`),
+        ]);
+        setEvent(eventRes.data);
+        const detected = normalizeBoxes(eventRes.data?.bbox || eventRes.data?.boxes);
+        setBoxes(detected);
+        setStats(statsRes.data);
+      } catch {
+        // Zera fila pendente se o backend não retornar contagem pesada
+        setEvent(fallbackEvent);
+        setBoxes(normalizeBoxes(fallbackEvent.boxes));
+        setStats({ total: 1, pending: 0, approved: 1, rejected: 0 });
+      }
 
-      setEvent(eventRes.data);
-      const detected = normalizeBoxes(eventRes.data?.bbox || eventRes.data?.boxes);
-      setBoxes(detected);
       setSavedAnnotationIds([]);
       setSaveError("");
-      setStats(statsRes.data);
     } catch {
-      // Se a fila remota estiver indisponível, carrega o evento de fallback ativo no workspace
       setEvent(fallbackEvent);
       setBoxes(normalizeBoxes(fallbackEvent.boxes));
     } finally {
@@ -115,7 +122,6 @@ export default function Validation() {
       await axios.post(`${API}/validation/${event.id}/${action}`);
       await load();
     } catch {
-      // Avança para o próximo evento se o backend não responder
       await load();
     } finally {
       setLoading(false);

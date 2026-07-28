@@ -8,7 +8,6 @@ import {
   Transformer,
   Text,
   Circle,
-  Line,
 } from 'react-konva';
 import useImage from 'use-image';
 import {
@@ -29,9 +28,6 @@ import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import { getClassDefinition } from '../../domain/annotation/ClassCatalog';
 import { useAnnotationStore } from '../../infrastructure/stores/useAnnotationStore';
 import { BoundingBox } from '../../domain/annotation/BoundingBox';
-
-const MIN_ZOOM = 1.0; // BLOCO 2: 100% = imagem inteira (nunca permite afastamento menor que 1.0)
-const MAX_ZOOM = 5.0;
 
 export default function EnhancedCanvasEngine({
   image,
@@ -61,7 +57,7 @@ export default function EnhancedCanvasEngine({
     const handleResize = () => {
       if (containerRef.current) {
         const width = containerRef.current.clientWidth || 960;
-        const height = Math.max(500, Math.min(800, window.innerHeight - 180));
+        const height = Math.max(450, Math.min(750, window.innerHeight - 200));
         setViewport({ width, height });
       }
     };
@@ -71,27 +67,35 @@ export default function EnhancedCanvasEngine({
     return () => observer.disconnect();
   }, []);
 
-  // Fit to screen (BLOCO 2: 100% = imagem inteira)
+  // Calcula a escala perfeita para 100% Enquadramento Total da Imagem
+  const getFitScale = useCallback(() => {
+    if (!img || !viewport.width || !viewport.height) return 1.0;
+    const scaleX = (viewport.width - 20) / img.width;
+    const scaleY = (viewport.height - 20) / img.height;
+    return Math.min(scaleX, scaleY);
+  }, [img, viewport.width, viewport.height]);
+
+  // Fit to screen (100% Enquadramento Total sem cortes)
   const fitToScreen = useCallback(() => {
     if (!img || !viewport.width || !viewport.height) return;
-    const scale = Math.min(viewport.width / img.width, viewport.height / img.height) * 0.95;
-    const clampedScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale));
-    setZoom(clampedScale);
+    const fitScale = getFitScale();
+    setZoom(fitScale);
     setPosition({
-      x: (viewport.width - img.width * clampedScale) / 2,
-      y: (viewport.height - img.height * clampedScale) / 2,
+      x: (viewport.width - img.width * fitScale) / 2,
+      y: (viewport.height - img.height * fitScale) / 2,
     });
-  }, [img, viewport.width, viewport.height]);
+  }, [img, viewport.width, viewport.height, getFitScale]);
 
   useEffect(() => {
     fitToScreen();
   }, [img, fitToScreen]);
 
-  // BLOCO 3: Foco Automático no Objeto Detectado
+  // Foco Automático no Objeto Detectado
   const autoFocusOnBox = useCallback(
     (targetBox) => {
       if (!targetBox || !img) return;
-      const targetZoom = 1.8;
+      const fitScale = getFitScale();
+      const targetZoom = fitScale * 1.5;
       const boxCenterX = targetBox.x + targetBox.width / 2;
       const boxCenterY = targetBox.y + targetBox.height / 2;
 
@@ -101,7 +105,7 @@ export default function EnhancedCanvasEngine({
         y: viewport.height / 2 - boxCenterY * targetZoom,
       });
     },
-    [img, viewport.width, viewport.height]
+    [img, viewport.width, viewport.height, getFitScale]
   );
 
   useEffect(() => {
@@ -124,9 +128,10 @@ export default function EnhancedCanvasEngine({
     }
   }, [selectedId, boxes, zoom]);
 
-  // Zoom Math (Garante limite mínimo de 1.0)
   const handleZoomAt = (targetZoom, point) => {
-    const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetZoom));
+    const minScale = getFitScale() * 0.8;
+    const maxScale = getFitScale() * 6.0;
+    const nextZoom = Math.max(minScale, Math.min(maxScale, targetZoom));
     const center = point || { x: viewport.width / 2, y: viewport.height / 2 };
     const worldPoint = {
       x: (center.x - position.x) / zoom,
@@ -287,7 +292,7 @@ export default function EnhancedCanvasEngine({
         }}
       >
         <ButtonGroup size="small" variant="outlined">
-          <Tooltip title="Diminuir Zoom (Limite Mínimo 100%)">
+          <Tooltip title="Diminuir Zoom">
             <Button onClick={() => handleZoomAt(zoom / 1.2)} sx={{ color: '#94A3B8', borderColor: '#334155' }}>
               <RemoveIcon fontSize="small" />
             </Button>
@@ -297,8 +302,8 @@ export default function EnhancedCanvasEngine({
               <AddIcon fontSize="small" />
             </Button>
           </Tooltip>
-          <Tooltip title="Resetar Zoom (100% = Imagem Inteira)">
-            <Button onClick={fitToScreen} sx={{ color: '#94A3B8', borderColor: '#334155', fontWeight: 600 }}>
+          <Tooltip title="Resetar Enquadramento (100% = Enquadrar Imagem)">
+            <Button onClick={fitToScreen} sx={{ color: '#38BDF8', borderColor: '#334155', fontWeight: 700 }}>
               100%
             </Button>
           </Tooltip>
@@ -343,7 +348,7 @@ export default function EnhancedCanvasEngine({
 
         <Stack direction="row" spacing={2} alignItems="center">
           <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600 }}>
-            Zoom: {Math.round(zoom * 100)}%
+            Zoom: {Math.round((zoom / (getFitScale() || 1)) * 100)}%
           </Typography>
           <Typography variant="caption" sx={{ color: '#38BDF8', fontWeight: 600 }}>
             Objetos: {boxes.length}
@@ -381,8 +386,8 @@ export default function EnhancedCanvasEngine({
                 draggable={isPanMode}
                 onDragEnd={(e) => setPosition({ x: e.target.x(), y: e.target.y() })}
               >
-                {/* Imagem de Fundo de Alta Definição com Escurecimento para Destaque da Caixa (BLOCO 15) */}
-                <KonvaImage name="bg-image" image={img} width={img.width} height={img.height} opacity={0.88} />
+                {/* Imagem de Fundo Completa Enquadrada Perfeitamente */}
+                <KonvaImage name="bg-image" image={img} width={img.width} height={img.height} opacity={0.92} />
 
                 {/* Overlays de Bounding Boxes */}
                 {boxes.map((box) => {

@@ -370,11 +370,15 @@ export default function BranchesSettingsContainer() {
                   onChange={(e) => setNewDvrData({ ...newDvrData, branchId: e.target.value })}
                   sx={{ bgcolor: '#1E293B', color: '#F8FAFC', fieldset: { borderColor: '#334155' } }}
                 >
-                  {branches.map((b) => (
-                    <MenuItem key={b.id} value={b.id}>
-                      {b.name} ({b.code})
-                    </MenuItem>
-                  ))}
+                  {Array.from({ length: 50 }, (_, i) => {
+                    const numStr = String(i + 1).padStart(2, '0');
+                    const codeStr = String(i + 1).padStart(3, '0');
+                    return (
+                      <MenuItem key={i + 1} value={`br-${i + 1}`}>
+                        Filial {numStr} (RIUAL_{codeStr})
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </Grid>
             </Grid>

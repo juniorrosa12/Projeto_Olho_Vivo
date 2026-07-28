@@ -8,11 +8,14 @@ import {
   Button,
   Popover,
   Stack,
+  ButtonGroup,
 } from '@mui/material';
 import HelpIcon from '@mui/icons-material/Help';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { useUIStore } from '../../../infrastructure/stores/useUIStore';
 import DatasetExportModal from './DatasetExportModal';
 
@@ -44,8 +47,30 @@ export default function TriageHeader({ event, stats }) {
         color: '#F8FAFC',
       }}
     >
-      {/* Esquerda: Identificação do Evento */}
+      {/* Esquerda: Barra de Navegação ← → e Identificação do Evento */}
       <Stack direction="row" spacing={1.5} alignItems="center">
+        {/* Barra de Voltar / Avancar estilo Navegador */}
+        <ButtonGroup size="small" variant="outlined" sx={{ mr: 1 }}>
+          <Tooltip title="Voltar para a Aba / Página Anterior">
+            <IconButton
+              size="small"
+              onClick={() => window.history.back()}
+              sx={{ color: '#94A3B8', border: '1px solid #334155', borderRadius: '4px 0 0 4px', p: 0.5 }}
+            >
+              <ArrowBackIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Avançar para a Próxima Aba / Página">
+            <IconButton
+              size="small"
+              onClick={() => window.history.forward()}
+              sx={{ color: '#94A3B8', border: '1px solid #334155', borderRadius: '0 4px 4px 0', p: 0.5 }}
+            >
+              <ArrowForwardIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
+        </ButtonGroup>
+
         <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#38BDF8', letterSpacing: 0.5 }}>
           OLHO VIVO STUDIO
         </Typography>
