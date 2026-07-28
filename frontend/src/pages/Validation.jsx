@@ -13,6 +13,8 @@ import ObjectAnnotator from "../components/annotation/ObjectAnnotator";
 import VideoPlayer from "../components/validation/VideoPlayer";
 import ValidationPanel from "../components/validation/ValidationPanel";
 import { createAnnotation, deleteAnnotation } from "../api/annotations";
+import { getObjectClass } from "../components/annotation/classConfig";
+import useAnnotationHistory from "../hooks/useAnnotationHistory";
 
 const API = `${window.location.protocol}//${window.location.hostname}:8000`;
 
@@ -24,7 +26,7 @@ const normalizeBoxes = (boxes = []) => {
 
   return detectedBoxes.map((box, index) => ({
     id: box?.id ?? `detected-${index}`,
-    class: box?.class ?? box?.label ?? "person",
+    class: getObjectClass(box?.class ?? box?.label).value,
     x: box?.x ?? box?.[0] ?? 0,
     y: box?.y ?? box?.[1] ?? 0,
     width: box?.width ?? box?.w ?? box?.[2] ?? 0,
@@ -35,7 +37,7 @@ const normalizeBoxes = (boxes = []) => {
 export default function Validation() {
 
   const [event, setEvent] = useState(null);
-  const [annotations, setAnnotations] = useState([]);
+  const { value: annotations, replace: replaceAnnotations, commit: commitAnnotations, reset: resetAnnotations, undo, redo } = useAnnotationHistory([]);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState(null);
   const [savedAnnotationIds, setSavedAnnotationIds] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -62,7 +64,7 @@ export default function Validation() {
 
       setEvent(eventRes.data);
       const detected = normalizeBoxes(eventRes.data?.bbox);
-      setAnnotations(detected);
+      resetAnnotations(detected);
       setSelectedAnnotationId(detected[0]?.id ?? null);
       setSavedAnnotationIds([]);
       setSaveError("");
@@ -74,7 +76,7 @@ export default function Validation() {
 
     }
 
-  }, []);
+  }, [resetAnnotations]);
 
   const handleDecision = async (action) => {
 
@@ -97,13 +99,13 @@ export default function Validation() {
   };
 
   const handleClassChange = (id, className) => {
-    setAnnotations((current) => current.map((item) => (
+    commitAnnotations(annotations.map((item) => (
       item.id === id ? { ...item, class: className } : item
     )));
   };
 
   const handleDelete = (id) => {
-    setAnnotations((current) => current.filter((item) => item.id !== id));
+    commitAnnotations(annotations.filter((item) => item.id !== id));
     if (selectedAnnotationId === id) setSelectedAnnotationId(null);
   };
 
@@ -215,7 +217,10 @@ export default function Validation() {
                 boxes={annotations}
                 selectedId={selectedAnnotationId}
                 onSelect={setSelectedAnnotationId}
-                onChange={setAnnotations}
+                onChange={replaceAnnotations}
+                onCommit={commitAnnotations}
+                onUndo={undo}
+                onRedo={redo}
               />
 
             </Grid>
