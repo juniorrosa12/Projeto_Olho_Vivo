@@ -23,14 +23,14 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
-import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
 import CreateIcon from '@mui/icons-material/Create';
+import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import { getClassDefinition } from '../../domain/annotation/ClassCatalog';
 import { useAnnotationStore } from '../../infrastructure/stores/useAnnotationStore';
 import { BoundingBox } from '../../domain/annotation/BoundingBox';
 
-const MIN_ZOOM = 0.1;
+const MIN_ZOOM = 1.0; // BLOCO 2: 100% = imagem inteira (nunca permite afastamento menor que 1.0)
 const MAX_ZOOM = 5.0;
 
 export default function EnhancedCanvasEngine({
@@ -43,7 +43,7 @@ export default function EnhancedCanvasEngine({
 }) {
   const [img] = useImage(image);
   const [viewport, setViewport] = useState({ width: 960, height: 600 });
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(1.0);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isPanMode, setIsPanMode] = useState(false);
   const [hoveredId, setHoveredId] = useState(null);
@@ -56,7 +56,7 @@ export default function EnhancedCanvasEngine({
 
   const { activeClass, toolMode, setToolMode } = useAnnotationStore();
 
-  // Responsive Container Resize Observer
+  // Resize Observer
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
@@ -71,7 +71,7 @@ export default function EnhancedCanvasEngine({
     return () => observer.disconnect();
   }, []);
 
-  // Auto Fit Screen when image loads
+  // Fit to screen (BLOCO 2: 100% = imagem inteira)
   const fitToScreen = useCallback(() => {
     if (!img || !viewport.width || !viewport.height) return;
     const scale = Math.min(viewport.width / img.width, viewport.height / img.height) * 0.95;
@@ -87,7 +87,31 @@ export default function EnhancedCanvasEngine({
     fitToScreen();
   }, [img, fitToScreen]);
 
-  // Transformer Selection Sync
+  // BLOCO 3: Foco Automático no Objeto Detectado
+  const autoFocusOnBox = useCallback(
+    (targetBox) => {
+      if (!targetBox || !img) return;
+      const targetZoom = 1.8;
+      const boxCenterX = targetBox.x + targetBox.width / 2;
+      const boxCenterY = targetBox.y + targetBox.height / 2;
+
+      setZoom(targetZoom);
+      setPosition({
+        x: viewport.width / 2 - boxCenterX * targetZoom,
+        y: viewport.height / 2 - boxCenterY * targetZoom,
+      });
+    },
+    [img, viewport.width, viewport.height]
+  );
+
+  useEffect(() => {
+    if (boxes.length > 0 && img) {
+      const firstBox = boxes.find((b) => b.id === selectedId) || boxes[0];
+      autoFocusOnBox(firstBox);
+    }
+  }, [selectedId, img, autoFocusOnBox]);
+
+  // Transformer Sync
   useEffect(() => {
     if (transformerRef.current && stageRef.current) {
       const selectedNode = stageRef.current.findOne(`#box-${selectedId}`);
@@ -100,7 +124,7 @@ export default function EnhancedCanvasEngine({
     }
   }, [selectedId, boxes, zoom]);
 
-  // Zoom Math
+  // Zoom Math (Garante limite mínimo de 1.0)
   const handleZoomAt = (targetZoom, point) => {
     const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetZoom));
     const center = point || { x: viewport.width / 2, y: viewport.height / 2 };
@@ -115,7 +139,6 @@ export default function EnhancedCanvasEngine({
     });
   };
 
-  // Mouse Wheel Zoom
   const handleWheel = (e) => {
     e.evt.preventDefault();
     const stage = stageRef.current;
@@ -125,7 +148,6 @@ export default function EnhancedCanvasEngine({
     handleZoomAt(zoom * delta, pointer);
   };
 
-  // Pointer & Drag-to-Create Box Logic
   const getStagePointerWorld = () => {
     const stage = stageRef.current;
     if (!stage) return { x: 0, y: 0 };
@@ -137,7 +159,6 @@ export default function EnhancedCanvasEngine({
   };
 
   const handleMouseDown = (e) => {
-    // If clicking on transformer or existing box, don't start drawing
     const clickedOnStage = e.target === e.target.getStage();
     const clickedOnImage = e.target.name?.() === 'bg-image';
 
@@ -188,7 +209,6 @@ export default function EnhancedCanvasEngine({
     startPosRef.current = null;
   };
 
-  // Box Transformations (Drag / Resize End)
   const handleBoxTransformEnd = (boxId, e) => {
     const node = e.target;
     const scaleX = node.scaleX();
@@ -254,7 +274,7 @@ export default function EnhancedCanvasEngine({
         overflow: 'hidden',
       }}
     >
-      {/* 1. Toolbar Superior de Controles da Canvas HUD */}
+      {/* 1. HUD Toolbar */}
       <Box
         sx={{
           height: 40,
@@ -267,7 +287,7 @@ export default function EnhancedCanvasEngine({
         }}
       >
         <ButtonGroup size="small" variant="outlined">
-          <Tooltip title="Diminuir Zoom">
+          <Tooltip title="Diminuir Zoom (Limite Mínimo 100%)">
             <Button onClick={() => handleZoomAt(zoom / 1.2)} sx={{ color: '#94A3B8', borderColor: '#334155' }}>
               <RemoveIcon fontSize="small" />
             </Button>
@@ -277,19 +297,18 @@ export default function EnhancedCanvasEngine({
               <AddIcon fontSize="small" />
             </Button>
           </Tooltip>
-          <Tooltip title="Resetar Zoom (100%)">
-            <Button onClick={() => handleZoomAt(1)} sx={{ color: '#94A3B8', borderColor: '#334155', fontWeight: 600 }}>
+          <Tooltip title="Resetar Zoom (100% = Imagem Inteira)">
+            <Button onClick={fitToScreen} sx={{ color: '#94A3B8', borderColor: '#334155', fontWeight: 600 }}>
               100%
             </Button>
           </Tooltip>
-          <Tooltip title="Ajustar à Tela">
-            <Button onClick={fitToScreen} sx={{ color: '#38BDF8', borderColor: '#334155' }}>
-              <FitScreenIcon fontSize="small" />
+          <Tooltip title="Focar Automático no Objeto">
+            <Button onClick={() => autoFocusOnBox(boxes[0])} sx={{ color: '#38BDF8', borderColor: '#334155' }}>
+              <CenterFocusStrongIcon fontSize="small" />
             </Button>
           </Tooltip>
         </ButtonGroup>
 
-        {/* Seleção de Modo de Ferramenta */}
         <ButtonGroup size="small" variant="outlined">
           <Tooltip title="Modo Seleção (S)">
             <Button
@@ -310,30 +329,29 @@ export default function EnhancedCanvasEngine({
               Desenhar Caixa
             </Button>
           </Tooltip>
-          <Tooltip title="Modo Pan (Espaço + Arraste)">
+          <Tooltip title="Modo Pan (Mover Tela)">
             <Button
               onClick={() => setIsPanMode(!isPanMode)}
               variant={isPanMode ? 'contained' : 'outlined'}
               startIcon={<TouchAppIcon sx={{ fontSize: 14 }} />}
               sx={{ textTransform: 'none', fontSize: '0.75rem' }}
             >
-              Mover Tela (Pan)
+              Mover Tela
             </Button>
           </Tooltip>
         </ButtonGroup>
 
-        {/* Telemetria HUD */}
         <Stack direction="row" spacing={2} alignItems="center">
           <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600 }}>
             Zoom: {Math.round(zoom * 100)}%
           </Typography>
-          <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600 }}>
-            Objetos em Cena: {boxes.length}
+          <Typography variant="caption" sx={{ color: '#38BDF8', fontWeight: 600 }}>
+            Objetos: {boxes.length}
           </Typography>
         </Stack>
       </Box>
 
-      {/* 2. Viewport Principal do Canvas Konva */}
+      {/* 2. Viewport Canvas */}
       <Box
         sx={{
           flex: 1,
@@ -363,10 +381,10 @@ export default function EnhancedCanvasEngine({
                 draggable={isPanMode}
                 onDragEnd={(e) => setPosition({ x: e.target.x(), y: e.target.y() })}
               >
-                {/* Imagem de Fundo de Alta Definição */}
-                <KonvaImage name="bg-image" image={img} width={img.width} height={img.height} />
+                {/* Imagem de Fundo de Alta Definição com Escurecimento para Destaque da Caixa (BLOCO 15) */}
+                <KonvaImage name="bg-image" image={img} width={img.width} height={img.height} opacity={0.88} />
 
-                {/* Renderização das Bounding Boxes Existentes */}
+                {/* Overlays de Bounding Boxes */}
                 {boxes.map((box) => {
                   if (box.isHidden) return null;
                   const classDef = getClassDefinition(box.class);
@@ -382,8 +400,8 @@ export default function EnhancedCanvasEngine({
                         width={box.width}
                         height={box.height}
                         stroke={classDef.color}
-                        strokeWidth={(isSelected ? 3 : 2) / zoom}
-                        fill={isSelected ? `${classDef.color}22` : 'transparent'}
+                        strokeWidth={(isSelected ? 3.5 : 2) / zoom}
+                        fill={isSelected ? `${classDef.color}33` : 'transparent'}
                         draggable={!box.isLocked && !isPanMode}
                         onMouseEnter={() => setHoveredId(box.id)}
                         onMouseLeave={() => setHoveredId(null)}
@@ -392,12 +410,11 @@ export default function EnhancedCanvasEngine({
                         onTransformEnd={(e) => handleBoxTransformEnd(box.id, e)}
                       />
 
-                      {/* Tag de Nome da Classe e Dimensões acima da caixa */}
                       {(isSelected || isHovered) && (
                         <Group x={box.x} y={Math.max(0, box.y - 20 / zoom)}>
                           <Rect
                             fill={classDef.color}
-                            width={(classDef.label.length * 8 + 12) / zoom}
+                            width={(classDef.label.length * 8 + 14) / zoom}
                             height={18 / zoom}
                             cornerRadius={3 / zoom}
                           />
@@ -412,7 +429,6 @@ export default function EnhancedCanvasEngine({
                         </Group>
                       )}
 
-                      {/* Botão de Exclusão Rápida no Canto Superior Direito */}
                       {(isSelected || isHovered) && !box.isLocked && (
                         <Group x={box.x + box.width} y={box.y} onClick={(e) => handleRemoveBox(box.id, e)}>
                           <Circle radius={10 / zoom} fill="#EF4444" />
@@ -431,7 +447,6 @@ export default function EnhancedCanvasEngine({
                   );
                 })}
 
-                {/* Caixa rascunho em tempo real durante o arraste (Draft Box) */}
                 {draftBox && (
                   <Rect
                     x={draftBox.x}
@@ -445,7 +460,6 @@ export default function EnhancedCanvasEngine({
                   />
                 )}
 
-                {/* Transformer para Redimensionamento em 8 Pontos */}
                 <Transformer
                   ref={transformerRef}
                   rotateEnabled={false}
