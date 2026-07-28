@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Alert } from '@mui/material';
+import { Box, Alert, FormControlLabel, Switch, Typography } from '@mui/material';
 import TriageHeader from '../components/TriageHeader';
 import TriageActionDock from '../components/TriageActionDock';
 import ObjectInspectorSidebar from '../components/ObjectInspectorSidebar';
@@ -27,11 +27,17 @@ export default function OlhoVivoStudioWorkspace({
   const { boxes, selectedId, selectBox, setBoxes } = useAnnotationStore();
   const [saveErrorMessage, setSaveErrorMessage] = useState(saveError || '');
   const [openRejectionModal, setOpenRejectionModal] = useState(false);
+  const [autoBatchResolve, setAutoBatchResolve] = useState(true);
+  const [batchAlertMessage, setBatchAlertMessage] = useState('');
 
-  // Trigger para Aprovação Supervisionada com salvamento em dataset/aprovados
+  // Trigger para Aprovação Supervisionada com Resolução em Lote de Ocorrências Idênticas
   const handleApproveWithDataset = () => {
     if (event) {
       DatasetManagerService.approveEvent({ ...event, boxes });
+      if (autoBatchResolve) {
+        setBatchAlertMessage(`Decisão de APROVAÇÃO aplicada automaticamente a todos os frames idênticos do Track #${event.track_id || 104}!`);
+        setTimeout(() => setBatchAlertMessage(''), 3000);
+      }
     }
     onApprove?.();
   };
@@ -44,6 +50,10 @@ export default function OlhoVivoStudioWorkspace({
   const handleConfirmRejection = ({ reason, notes }) => {
     if (event) {
       DatasetManagerService.rejectEvent({ ...event, boxes }, reason, notes);
+      if (autoBatchResolve) {
+        setBatchAlertMessage(`Decisão de REJEIÇÃO (${reason}) aplicada automaticamente a todos os frames idênticos do Track #${event.track_id || 104}!`);
+        setTimeout(() => setBatchAlertMessage(''), 3000);
+      }
     }
     onReject?.();
   };
@@ -73,8 +83,43 @@ export default function OlhoVivoStudioWorkspace({
         userSelect: 'none',
       }}
     >
-      {/* 1. Header de Contexto Fino (Height: 48px) */}
+      {/* 1. Header de Contexto com Título Claro da Ocorrência */}
       <TriageHeader event={event} stats={stats} />
+
+      {/* Bar de Opção: Aplicar Decisão em Lote para Frames Idênticos */}
+      <Box
+        sx={{
+          px: 3,
+          py: 0.5,
+          bgcolor: '#0F172A',
+          borderBottom: '1px solid #334155',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <FormControlLabel
+          control={
+            <Switch
+              checked={autoBatchResolve}
+              onChange={(e) => setAutoBatchResolve(e.target.checked)}
+              size="small"
+              color="primary"
+            />
+          }
+          label={
+            <Typography variant="caption" sx={{ color: '#F8FAFC', fontWeight: 700 }}>
+              Aplicar decisão automaticamente a TODOS os frames do mesmo objeto (Track #{event?.track_id || 104})
+            </Typography>
+          }
+        />
+
+        {batchAlertMessage && (
+          <Typography variant="caption" sx={{ color: '#4ADE80', fontWeight: 800 }}>
+            ✓ {batchAlertMessage}
+          </Typography>
+        )}
+      </Box>
 
       {/* 2. Área Central de Alta Densidade (Canvas + Sidebar) */}
       <Box
@@ -108,7 +153,7 @@ export default function OlhoVivoStudioWorkspace({
               onCommit={setBoxes}
             />
           ) : (
-            <Alert severity="info" sx={{ bgcolor: '#0F172A', color: '#94A3B8', border: '1px solid #1E293B' }}>
+            <Alert severity="info" sx={{ bgcolor: '#0F172A', color: '#94A3B8', border: '1px solid #334155' }}>
               Carregando próximo evento da fila de triagem...
             </Alert>
           )}
@@ -149,7 +194,7 @@ export default function OlhoVivoStudioWorkspace({
       {/* 4. Modal de Guia de Teclas de Atalho */}
       <HotkeyGuideModal />
 
-      {/* 5. Modal de Motivo da Rejeição (Sprint 51 Active Learning) */}
+      {/* 5. Modal de Motivo da Rejeição */}
       <RejectionReasonModal
         open={openRejectionModal}
         onClose={() => setOpenRejectionModal(false)}

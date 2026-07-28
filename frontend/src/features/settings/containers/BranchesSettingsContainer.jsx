@@ -116,13 +116,14 @@ export default function BranchesSettingsContainer() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: '#020617', minHeight: '100vh', color: '#F8FAFC' }}>
-      {/* Header Principal com Botão de Ação Destacado */}
+      {/* Header Principal */}
       <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2} mb={3}>
         <Box>
           <Typography variant="h5" fontWeight={700} sx={{ color: '#F8FAFC', letterSpacing: -0.5 }}>
             Infraestrutura Multi-Filial, DVRs & Rede Tailscale Mesh
           </Typography>
-          <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+
+          <Typography variant="body2" sx={{ color: '#E2E8F0', mt: 0.5, fontWeight: 500 }}>
             Gerenciamento centralizado de filiais, conectividade VPN Tailscale, cadastro de DVRs e auto-geração de URLs RTSP
           </Typography>
         </Box>
@@ -131,7 +132,7 @@ export default function BranchesSettingsContainer() {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleOpenCreateModal}
-          sx={{ bgcolor: '#38BDF8', color: '#0F172A', fontWeight: 700, textTransform: 'none', px: 2.5, py: 1 }}
+          sx={{ bgcolor: '#38BDF8', color: '#0F172A', fontWeight: 800, textTransform: 'none', px: 2.5, py: 1 }}
         >
           Cadastrar DVR
         </Button>
@@ -143,10 +144,10 @@ export default function BranchesSettingsContainer() {
         onChange={(_, val) => setActiveTab(val)}
         sx={{
           mb: 3,
-          borderBottom: '1px solid #1E293B',
-          '& .MuiTab-root': { color: '#94A3B8', textTransform: 'none', fontWeight: 600 },
+          borderBottom: '1px solid #334155',
+          '& .MuiTab-root': { color: '#CBD5E1', textTransform: 'none', fontWeight: 700, fontSize: '0.9rem' },
           '& .Mui-selected': { color: '#38BDF8' },
-          '& .MuiTabs-indicator': { backgroundColor: '#38BDF8' },
+          '& .MuiTabs-indicator': { backgroundColor: '#38BDF8', height: 3 },
         }}
       >
         <Tab icon={<StoreIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Filiais & Redes Tailscale" />
@@ -156,38 +157,38 @@ export default function BranchesSettingsContainer() {
         <Tab icon={<MapIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Mapa Operacional" />
       </Tabs>
 
-      {/* ABA 0: Filiais Tailscale */}
+      {/* ABA 0: Filiais Tailscale (ALTO CONTRASTE DE LETRAS) */}
       {activeTab === 0 && (
         <Grid container spacing={3}>
           {branches.map((branch) => (
             <Grid item xs={12} md={6} key={branch.id}>
-              <Paper elevation={0} sx={{ p: 3, bgcolor: '#0F172A', border: '1px solid #1E293B', borderRadius: 2.5 }}>
+              <Paper elevation={0} sx={{ p: 3, bgcolor: '#0F172A', border: '1px solid #334155', borderRadius: 2.5 }}>
                 <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                   <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Box sx={{ bgcolor: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', p: 1, borderRadius: 2 }}>
+                    <Box sx={{ bgcolor: 'rgba(56, 189, 248, 0.2)', color: '#38BDF8', p: 1, borderRadius: 2 }}>
                       <StoreIcon fontSize="small" />
                     </Box>
                     <Box>
-                      <Typography variant="subtitle1" fontWeight={700}>
+                      <Typography variant="subtitle1" fontWeight={800} sx={{ color: '#FFFFFF' }}>
                         {branch.name}
                       </Typography>
-                      <Typography variant="caption" color="#94A3B8">
-                        {branch.city} • Código: {branch.code}
+                      <Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 600 }}>
+                        {branch.city} • Código: <span style={{ color: '#38BDF8' }}>{branch.code}</span>
                       </Typography>
                     </Box>
                   </Stack>
-                  <Chip label={branch.status} size="small" sx={{ bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#6EE7B7', fontWeight: 700 }} />
+                  <Chip label={branch.status} size="small" sx={{ bgcolor: 'rgba(16, 185, 129, 0.2)', color: '#4ADE80', fontWeight: 800 }} />
                 </Box>
 
-                <Stack spacing={1} mb={2} sx={{ bgcolor: '#1E293B', p: 2, borderRadius: 2 }}>
-                  <Typography variant="caption" color="#CBD5E1">
-                    IP Tailscale Mesh: <strong>{branch.tailscaleIp}</strong>
+                <Stack spacing={1.5} mb={1} sx={{ bgcolor: '#1E293B', p: 2, borderRadius: 2, border: '1px solid #334155' }}>
+                  <Typography variant="body2" sx={{ color: '#F1F5F9', fontWeight: 600 }}>
+                    IP Tailscale Mesh: <strong style={{ color: '#38BDF8', fontFamily: 'monospace' }}>{branch.tailscaleIp}</strong>
                   </Typography>
-                  <Typography variant="caption" color="#CBD5E1">
-                    Hostname: <code>{branch.tailscaleHostname}</code>
+                  <Typography variant="body2" sx={{ color: '#F1F5F9', fontWeight: 600 }}>
+                    Hostname: <code style={{ color: '#38BDF8', backgroundColor: '#0F172A', padding: '2px 6px', borderRadius: '4px' }}>{branch.tailscaleHostname}</code>
                   </Typography>
-                  <Typography variant="caption" color="#CBD5E1">
-                    Latência Mesh: <strong>{branch.latencyMs} ms</strong> • Último Heartbeat: {branch.lastHeartbeat}
+                  <Typography variant="body2" sx={{ color: '#F1F5F9', fontWeight: 600 }}>
+                    Latência Mesh: <strong style={{ color: '#4ADE80' }}>{branch.latencyMs} ms</strong> • Último Heartbeat: <span style={{ color: '#E2E8F0' }}>{branch.lastHeartbeat}</span>
                   </Typography>
                 </Stack>
               </Paper>
@@ -200,7 +201,7 @@ export default function BranchesSettingsContainer() {
       {activeTab === 1 && (
         <Box>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="subtitle1" fontWeight={700}>
+            <Typography variant="subtitle1" fontWeight={800} sx={{ color: '#FFFFFF' }}>
               DVRs Cadastrados
             </Typography>
             <Button
@@ -208,7 +209,7 @@ export default function BranchesSettingsContainer() {
               size="small"
               startIcon={<AddIcon />}
               onClick={handleOpenCreateModal}
-              sx={{ bgcolor: '#38BDF8', color: '#0F172A', fontWeight: 700, textTransform: 'none' }}
+              sx={{ bgcolor: '#38BDF8', color: '#0F172A', fontWeight: 800, textTransform: 'none' }}
             >
               Cadastrar DVR
             </Button>
@@ -217,18 +218,18 @@ export default function BranchesSettingsContainer() {
           <Grid container spacing={3}>
             {dvrs.map((dvr) => (
               <Grid item xs={12} md={6} key={dvr.id}>
-                <Paper elevation={0} sx={{ p: 3, bgcolor: '#0F172A', border: '1px solid #1E293B', borderRadius: 2.5 }}>
+                <Paper elevation={0} sx={{ p: 3, bgcolor: '#0F172A', border: '1px solid #334155', borderRadius: 2.5 }}>
                   <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                     <Stack direction="row" spacing={1.5} alignItems="center">
-                      <Box sx={{ bgcolor: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', p: 1, borderRadius: 2 }}>
+                      <Box sx={{ bgcolor: 'rgba(245, 158, 11, 0.2)', color: '#F59E0B', p: 1, borderRadius: 2 }}>
                         <RouterIcon fontSize="small" />
                       </Box>
                       <Box>
-                        <Typography variant="subtitle1" fontWeight={700}>
+                        <Typography variant="subtitle1" fontWeight={800} sx={{ color: '#FFFFFF' }}>
                           {dvr.name}
                         </Typography>
-                        <Typography variant="caption" color="#94A3B8">
-                          {dvr.manufacturer} {dvr.model} • {dvr.channelsCount} Canais
+                        <Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 600 }}>
+                          {dvr.manufacturer} {dvr.model} • <span style={{ color: '#38BDF8' }}>{dvr.channelsCount} Canais</span>
                         </Typography>
                       </Box>
                     </Stack>
@@ -243,12 +244,12 @@ export default function BranchesSettingsContainer() {
                     </Stack>
                   </Box>
 
-                  <Stack spacing={1} mb={2} sx={{ bgcolor: '#1E293B', p: 2, borderRadius: 2 }}>
-                    <Typography variant="caption" color="#CBD5E1">
-                      IP Tailscale: <strong>{dvr.tailscaleIp}</strong> (HTTP: {dvr.httpPort} | RTSP: {dvr.rtspPort})
+                  <Stack spacing={1.5} mb={2} sx={{ bgcolor: '#1E293B', p: 2, borderRadius: 2, border: '1px solid #334155' }}>
+                    <Typography variant="body2" sx={{ color: '#F1F5F9', fontWeight: 600 }}>
+                      IP Tailscale: <strong style={{ color: '#38BDF8', fontFamily: 'monospace' }}>{dvr.tailscaleIp}</strong> (HTTP: {dvr.httpPort} | RTSP: {dvr.rtspPort})
                     </Typography>
-                    <Typography variant="caption" color="#CBD5E1">
-                      Usuário de Acesso: <code>{dvr.user}</code>
+                    <Typography variant="body2" sx={{ color: '#F1F5F9', fontWeight: 600 }}>
+                      Usuário de Acesso: <code style={{ color: '#38BDF8', backgroundColor: '#0F172A', padding: '2px 6px', borderRadius: '4px' }}>{dvr.user}</code>
                     </Typography>
                   </Stack>
 
@@ -258,7 +259,7 @@ export default function BranchesSettingsContainer() {
                     size="small"
                     startIcon={testingDvrId === dvr.id ? <CircularProgress size={14} color="inherit" /> : <NetworkCheckIcon />}
                     onClick={() => handleTestConnection(dvr.id)}
-                    sx={{ color: '#38BDF8', borderColor: '#334155', textTransform: 'none' }}
+                    sx={{ color: '#38BDF8', borderColor: '#334155', textTransform: 'none', fontWeight: 700 }}
                   >
                     {testingDvrId === dvr.id ? 'Testando Conexão...' : 'Testar Conexão (Ping / HTTP / RTSP)'}
                   </Button>
@@ -274,26 +275,26 @@ export default function BranchesSettingsContainer() {
         <Grid container spacing={3}>
           {cameras.map((cam) => (
             <Grid item xs={12} md={6} key={cam.id}>
-              <Paper elevation={0} sx={{ p: 3, bgcolor: '#0F172A', border: '1px solid #1E293B', borderRadius: 2.5 }}>
-                <Typography variant="subtitle1" fontWeight={700} mb={1}>
+              <Paper elevation={0} sx={{ p: 3, bgcolor: '#0F172A', border: '1px solid #334155', borderRadius: 2.5 }}>
+                <Typography variant="subtitle1" fontWeight={800} sx={{ color: '#FFFFFF' }} mb={0.5}>
                   {cam.name} (Canal #{cam.channel})
                 </Typography>
-                <Typography variant="caption" color="#94A3B8" display="block" mb={2}>
-                  {cam.location} • Resolução: {cam.resolution} • {cam.fps} FPS
+                <Typography variant="body2" sx={{ color: '#94A3B8', fontWeight: 600 }} mb={2}>
+                  {cam.location} • Resolução: <span style={{ color: '#38BDF8' }}>{cam.resolution}</span> • {cam.fps} FPS
                 </Typography>
 
-                <Box sx={{ bgcolor: '#1E293B', p: 1.5, borderRadius: 2, mb: 2 }}>
-                  <Typography variant="caption" color="#94A3B8" display="block" mb={0.5}>
+                <Box sx={{ bgcolor: '#1E293B', p: 1.5, borderRadius: 2, mb: 2, border: '1px solid #334155' }}>
+                  <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, display: 'block' }} mb={0.5}>
                     URL RTSP Gerada Automatizada (Device Manager):
                   </Typography>
-                  <Typography variant="caption" sx={{ color: '#38BDF8', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                  <Typography variant="body2" sx={{ color: '#38BDF8', fontFamily: 'monospace', wordBreak: 'break-all', fontWeight: 700 }}>
                     {cam.rtspUrl}
                   </Typography>
                 </Box>
 
                 <Stack direction="row" spacing={1}>
                   {cam.monitoredClasses.map((cls, idx) => (
-                    <Chip key={idx} label={cls} size="small" sx={{ bgcolor: '#0B1120', color: '#6EE7B7', fontSize: '0.68rem' }} />
+                    <Chip key={idx} label={cls} size="small" sx={{ bgcolor: '#0B1120', color: '#4ADE80', fontSize: '0.75rem', fontWeight: 700 }} />
                   ))}
                 </Stack>
               </Paper>
@@ -308,18 +309,18 @@ export default function BranchesSettingsContainer() {
       {/* ABA 4: Mapa Operacional */}
       {activeTab === 4 && <InteractiveOperationalMap />}
 
-      {/* MODAL: Cadastrar / Editar DVR */}
+      {/* MODAL: Cadastrar / Editar DVR com alto contraste */}
       <Dialog
         open={openAddDvrModal}
         onClose={() => setOpenAddDvrModal(false)}
         maxWidth="sm"
         fullWidth
         PaperProps={{
-          sx: { bgcolor: '#0F172A', color: '#F8FAFC', border: '1px solid #1E293B', borderRadius: 3 },
+          sx: { bgcolor: '#0F172A', color: '#F8FAFC', border: '1px solid #334155', borderRadius: 3 },
         }}
       >
-        <DialogTitle display="flex" justifyContent="space-between" alignItems="center" borderBottom="1px solid #1E293B">
-          <Typography variant="h6" fontWeight={700}>
+        <DialogTitle display="flex" justifyContent="space-between" alignItems="center" borderBottom="1px solid #334155">
+          <Typography variant="h6" fontWeight={800} sx={{ color: '#FFFFFF' }}>
             {editingDvrId ? 'Editar DVR de Loja' : 'Cadastrar Novo DVR de Loja'}
           </Typography>
           <IconButton size="small" onClick={() => setOpenAddDvrModal(false)} sx={{ color: '#94A3B8' }}>
@@ -336,12 +337,12 @@ export default function BranchesSettingsContainer() {
               value={newDvrData.name}
               onChange={(e) => setNewDvrData({ ...newDvrData, name: e.target.value })}
               placeholder="Ex: DVR Principal Caixas"
-              sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+              sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
             />
 
             <Grid container spacing={2}>
               <Grid item xs={6}>
-                <Typography variant="caption" color="#94A3B8" display="block" mb={0.5}>
+                <Typography variant="caption" color="#94A3B8" fontWeight={700} display="block" mb={0.5}>
                   Fabricante
                 </Typography>
                 <Select
@@ -349,7 +350,7 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.manufacturer}
                   onChange={(e) => setNewDvrData({ ...newDvrData, manufacturer: e.target.value })}
-                  sx={{ bgcolor: '#1E293B', color: '#F8FAFC', fieldset: { borderColor: '#334155' } }}
+                  sx={{ bgcolor: '#1E293B', color: '#F8FAFC', fontWeight: 600, fieldset: { borderColor: '#334155' } }}
                 >
                   <MenuItem value="HIKVISION">Hikvision</MenuItem>
                   <MenuItem value="DAHUA">Dahua</MenuItem>
@@ -360,7 +361,7 @@ export default function BranchesSettingsContainer() {
               </Grid>
 
               <Grid item xs={6}>
-                <Typography variant="caption" color="#94A3B8" display="block" mb={0.5}>
+                <Typography variant="caption" color="#94A3B8" fontWeight={700} display="block" mb={0.5}>
                   Filial Associada
                 </Typography>
                 <Select
@@ -368,7 +369,7 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.branchId}
                   onChange={(e) => setNewDvrData({ ...newDvrData, branchId: e.target.value })}
-                  sx={{ bgcolor: '#1E293B', color: '#F8FAFC', fieldset: { borderColor: '#334155' } }}
+                  sx={{ bgcolor: '#1E293B', color: '#F8FAFC', fontWeight: 600, fieldset: { borderColor: '#334155' } }}
                 >
                   {Array.from({ length: 50 }, (_, i) => {
                     const numStr = String(i + 1).padStart(2, '0');
@@ -391,7 +392,7 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.model}
                   onChange={(e) => setNewDvrData({ ...newDvrData, model: e.target.value })}
-                  sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                  sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
                 />
               </Grid>
 
@@ -403,7 +404,7 @@ export default function BranchesSettingsContainer() {
                   value={newDvrData.tailscaleIp}
                   onChange={(e) => setNewDvrData({ ...newDvrData, tailscaleIp: e.target.value })}
                   placeholder="100.64.10.X"
-                  sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                  sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
                 />
               </Grid>
             </Grid>
@@ -417,7 +418,7 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.httpPort}
                   onChange={(e) => setNewDvrData({ ...newDvrData, httpPort: Number(e.target.value) })}
-                  sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                  sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
                 />
               </Grid>
               <Grid item xs={4}>
@@ -428,11 +429,11 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.rtspPort}
                   onChange={(e) => setNewDvrData({ ...newDvrData, rtspPort: Number(e.target.value) })}
-                  sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                  sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
                 />
               </Grid>
               <Grid item xs={4}>
-                <Typography variant="caption" color="#94A3B8" display="block" mb={0.5}>
+                <Typography variant="caption" color="#94A3B8" fontWeight={700} display="block" mb={0.5}>
                   Canais
                 </Typography>
                 <Select
@@ -440,7 +441,7 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.channelsCount}
                   onChange={(e) => setNewDvrData({ ...newDvrData, channelsCount: Number(e.target.value) })}
-                  sx={{ bgcolor: '#1E293B', color: '#F8FAFC', fieldset: { borderColor: '#334155' } }}
+                  sx={{ bgcolor: '#1E293B', color: '#F8FAFC', fontWeight: 600, fieldset: { borderColor: '#334155' } }}
                 >
                   <MenuItem value={4}>4 Canais</MenuItem>
                   <MenuItem value={8}>8 Canais</MenuItem>
@@ -458,7 +459,7 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.user}
                   onChange={(e) => setNewDvrData({ ...newDvrData, user: e.target.value })}
-                  sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                  sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
                 />
               </Grid>
               <Grid item xs={6}>
@@ -469,20 +470,20 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.password}
                   onChange={(e) => setNewDvrData({ ...newDvrData, password: e.target.value })}
-                  sx={{ input: { color: '#F8FAFC' }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                  sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
                 />
               </Grid>
             </Grid>
           </Stack>
         </DialogContent>
 
-        <DialogActions sx={{ p: 2, borderTop: '1px solid #1E293B', justifyContent: 'space-between' }}>
+        <DialogActions sx={{ p: 2, borderTop: '1px solid #334155', justifyContent: 'space-between' }}>
           <Button
             variant="outlined"
             size="small"
             startIcon={<NetworkCheckIcon />}
             onClick={() => handleTestConnection('preview')}
-            sx={{ color: '#38BDF8', borderColor: '#334155', textTransform: 'none' }}
+            sx={{ color: '#38BDF8', borderColor: '#334155', textTransform: 'none', fontWeight: 700 }}
           >
             Testar Conexão
           </Button>
@@ -496,7 +497,7 @@ export default function BranchesSettingsContainer() {
               onClick={handleSaveDvr}
               disabled={provisioning}
               startIcon={provisioning ? <CircularProgress size={14} color="inherit" /> : null}
-              sx={{ bgcolor: '#38BDF8', color: '#0F172A', fontWeight: 700, textTransform: 'none' }}
+              sx={{ bgcolor: '#38BDF8', color: '#0F172A', fontWeight: 800, textTransform: 'none' }}
             >
               {provisioning ? 'Provisionando Canais...' : editingDvrId ? 'Atualizar DVR' : 'Salvar DVR'}
             </Button>
@@ -510,15 +511,15 @@ export default function BranchesSettingsContainer() {
           <CheckCircleIcon sx={{ color: '#10B981' }} />
           Resultado do Teste de Conexão
         </DialogTitle>
-        <DialogContent dividers sx={{ borderColor: '#1E293B' }}>
+        <DialogContent dividers sx={{ borderColor: '#334155' }}>
           <Stack spacing={1}>
-            <Typography variant="body2">Ping Tailscale: <strong>{testResult?.pingMs} ms</strong></Typography>
-            <Typography variant="body2">Serviço HTTP (Porta 80): <strong>Status 200 OK</strong></Typography>
-            <Typography variant="body2">Stream RTSP (Porta 554): <strong>{testResult?.rtspStatus}</strong></Typography>
+            <Typography variant="body2" sx={{ color: '#FFFFFF' }}>Ping Tailscale: <strong>{testResult?.pingMs} ms</strong></Typography>
+            <Typography variant="body2" sx={{ color: '#FFFFFF' }}>Serviço HTTP (Porta 80): <strong>Status 200 OK</strong></Typography>
+            <Typography variant="body2" sx={{ color: '#FFFFFF' }}>Stream RTSP (Porta 554): <strong>{testResult?.rtspStatus}</strong></Typography>
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setTestResult(null)} sx={{ color: '#38BDF8' }}>OK</Button>
+          <Button onClick={() => setTestResult(null)} sx={{ color: '#38BDF8', fontWeight: 700 }}>OK</Button>
         </DialogActions>
       </Dialog>
     </Box>
