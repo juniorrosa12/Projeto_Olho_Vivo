@@ -11,6 +11,7 @@ from app.routes.statistics import router as statistics_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.heatmap import router as heatmap_router
 from app.routes.tracks import router as tracks_router
+from app.routes.annotations import router as annotations_router
 
 create_database()
 
@@ -36,6 +37,7 @@ app.include_router(statistics_router)
 app.include_router(dashboard_router)
 app.include_router(heatmap_router)
 app.include_router(tracks_router)
+app.include_router(annotations_router)
 
 
 @app.get("/")

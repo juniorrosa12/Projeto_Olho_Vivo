@@ -14,9 +14,13 @@ class BackendClient:
 
         try:
 
+            payload = asdict(event)
+
+            print(payload)
+
             response = requests.post(
                 f"{self.base_url}/events/",
-                json=asdict(event),
+                json=payload,
                 timeout=5,
             )
 

@@ -1,22 +1,15 @@
-from pathlib import Path
-from datetime import datetime
-
 import cv2
+import os
+import uuid
 
 
-class Snapshot:
+class SnapshotRecorder:
 
     def __init__(self):
-
-        self.output = Path("/app/output/snapshots")
-        self.output.mkdir(parents=True, exist_ok=True)
+        self.dir = "/app/output/snapshots"
+        os.makedirs(self.dir, exist_ok=True)
 
     def save(self, frame):
-
-        name = datetime.now().strftime("%Y%m%d_%H%M%S_%f") + ".jpg"
-
-        path = self.output / name
-
-        cv2.imwrite(str(path), frame)
-
-        return f"/static/snapshots/{name}"
+        filename = f"{uuid.uuid4().hex}.jpg"
+        cv2.imwrite(os.path.join(self.dir, filename), frame)
+        return f"/static/snapshots/{filename}"

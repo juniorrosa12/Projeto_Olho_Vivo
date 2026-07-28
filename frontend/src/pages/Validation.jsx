@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import axios from "axios";
 
-import SnapshotViewer from "../components/validation/SnapshotViewer";
+import ObjectAnnotator from "../components/annotation/ObjectAnnotator";
 import VideoPlayer from "../components/validation/VideoPlayer";
 import ValidationPanel from "../components/validation/ValidationPanel";
 
@@ -143,8 +143,10 @@ export default function Validation() {
 
             <Grid item xs={12} lg={9}>
 
-              <SnapshotViewer
-                src={`${API}${event.snapshot}?t=${Date.now()}`}
+              <ObjectAnnotator
+                 image={`${API}${event.snapshot}?t=${Date.now()}`}
+                 boxes={event.bbox || []}
+                 onChange={setAnnotations}
               />
 
             </Grid>

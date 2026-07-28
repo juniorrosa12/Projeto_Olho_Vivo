@@ -6,6 +6,7 @@ from sqlalchemy import desc
 
 from app.database.database import SessionLocal
 from app.models.event import Event
+from app.models.track import Track
 from app.models.validation import Validation
 
 
@@ -90,6 +91,41 @@ def receive_event(event: EventRequest):
         db.close()
 
 
+@router.get("")
+def list_events(limit: int = 10):
+
+    db = SessionLocal()
+
+    try:
+
+        events = (
+            db.query(Event)
+            .order_by(desc(Event.event_time))
+            .limit(limit)
+            .all()
+        )
+
+        return [
+            {
+                "id": e.id,
+                "event_type": e.event_type,
+                "track_id": e.track_id,
+                "camera_id": e.camera_id,
+                "filial_id": e.filial_id,
+                "confidence": e.confidence,
+                "snapshot": e.snapshot,
+                "video": e.video,
+                "status": e.status,
+                "event_time": e.event_time,
+            }
+            for e in events
+        ]
+
+    finally:
+
+        db.close()
+
+
 @router.get("/dashboard")
 def dashboard():
 
@@ -104,9 +140,29 @@ def dashboard():
             .all()
         )
 
+        people_now = db.query(Track).filter(
+            Track.object_class == "person",
+            Track.status == "active",
+        ).count()
+
+        entries = db.query(Event).filter(
+            Event.event_type == "person_enter"
+        ).count()
+
+        exits = db.query(Event).filter(
+            Event.event_type == "person_exit"
+        ).count()
+
+        phones = db.query(Event).filter(
+            Event.event_type == "cell_phone"
+        ).count()
+
         return {
 
-            "events": db.query(Event).count(),
+            "people_now": people_now,
+            "entries": entries,
+            "exits": exits,
+            "phones": phones,
 
             "pending": db.query(Event).filter(
                 Event.status == "pending"

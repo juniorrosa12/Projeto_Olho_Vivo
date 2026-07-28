@@ -1,8 +1,0 @@
-opencv-python-headless
-numpy
-loguru
-ultralytics
-torch
-torchvision
-lap
-requests

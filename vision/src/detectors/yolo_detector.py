@@ -33,7 +33,7 @@ COLORS = {
 
 class YOLODetector:
 
-    def __init__(self, model_name="yolo11n.pt"):
+    def __init__(self, model_name="yolo11s.pt"):
 
         logger.info(f"Carregando modelo {model_name}...")
 
@@ -47,8 +47,8 @@ class YOLODetector:
             source=frame,
             persist=True,
             tracker="bytetrack.yaml",
-            conf=0.25,
-            iou=0.45,
+            conf=0.20,
+            iou=0.50,
             verbose=False,
         )
 
@@ -83,9 +83,17 @@ class YOLODetector:
         confs = result.boxes.conf.cpu().tolist()
         boxes = result.boxes.xyxy.cpu().tolist()
 
+        logger.info("========== DETECÇÕES ==========")
+
         for track_id, cls, conf, box in zip(ids, classes, confs, boxes):
 
             class_name = result.names[int(cls)]
+
+            logger.info(
+                f"YOLO -> Classe='{class_name}' "
+                f"| Track={track_id} "
+                f"| Conf={conf:.2f}"
+            )
 
             if class_name not in MONITORED_CLASSES:
                 continue
@@ -119,16 +127,24 @@ class YOLODetector:
                 2,
             )
 
-            detections.append(
-                {
-                    "id": int(track_id) if track_id is not None else -1,
-                    "class": class_name,
-                    "display_name": display_name,
-                    "confidence": float(conf),
-                    "bbox": [x1, y1, x2, y2],
-                }
+            detection = {
+                "id": int(track_id) if track_id is not None else -1,
+                "class": class_name,
+                "display_name": display_name,
+                "confidence": float(conf),
+                "bbox": [x1, y1, x2, y2],
+            }
+
+            detections.append(detection)
+
+            logger.success(
+                f"MONITORADO -> {detection}"
             )
 
-        logger.info(f"Detecções monitoradas: {len(detections)}")
+        logger.info(
+            f"Total monitorados: {len(detections)}"
+        )
+
+        logger.info("==============================")
 
         return frame, detections

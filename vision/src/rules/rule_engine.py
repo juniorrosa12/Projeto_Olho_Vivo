@@ -1,4 +1,3 @@
- 
 from src.analyzers.cell_phone_analyzer import CellPhoneAnalyzer
 from src.analyzers.person_analyzer import PersonAnalyzer
 from src.config.site import CAMERA, FILIAL
@@ -10,7 +9,6 @@ class RuleEngine:
     def __init__(self):
 
         self.person = PersonAnalyzer()
-
         self.phone = CellPhoneAnalyzer()
 
     def process(self, frame, detections):
@@ -27,14 +25,9 @@ class RuleEngine:
             if d["class"] == "cell phone"
         ]
 
-        objects = []
-
-        objects.extend(
-            self.person.analyze(
-                people,
-                frame,
-            )
-        )
+        #
+        # EVENTOS DE CELULAR
+        #
 
         for phone in phones:
 
@@ -44,28 +37,51 @@ class RuleEngine:
 
                 x1, y1, x2, y2 = person["bbox"]
 
-                if (
-                    px1 >= x1
-                    and py1 >= y1
-                    and px2 <= x2
-                    and py2 <= y2
-                ):
+                #
+                # Verifica interseção entre as caixas
+                #
 
-                    detection = self.phone.analyze(
-                        person,
-                        phone,
-                        frame,
+                intersects = (
+                    px1 < x2
+                    and px2 > x1
+                    and py1 < y2
+                    and py2 > y1
+                )
+
+                print(
+                    f"Pessoa={person['bbox']} | "
+                    f"Celular={phone['bbox']} | "
+                    f"Intersect={intersects}"
+                )
+
+                if not intersects:
+                    continue
+
+                detection = self.phone.analyze(
+                    person,
+                    phone,
+                    frame,
+                )
+
+                if detection:
+
+                    print(
+                        f"📱 Celular detectado para Track {person['id']}"
                     )
 
-                    if detection:
-                        objects.append(detection)
+                    return EventFactory.create(
+                        event_type="cell_phone",
+                        filial=FILIAL,
+                        camera=CAMERA,
+                        detections=[detection],
+                        metadata={
+                            "rule": "cell_phone",
+                        },
+                    )
 
-        return EventFactory.create(
-            event_type="frame_analysis",
-            filial=FILIAL,
-            camera=CAMERA,
-            detections=objects,
-            metadata={
-                "total_detections": len(objects),
-            },
-        )
+        #
+        # Futuras regras (person_enter, person_exit,
+        # loitering, intrusion...)
+        #
+
+        return None

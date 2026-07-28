@@ -9,6 +9,7 @@ from src.core.video_source import MP4VideoSource
 from src.detectors.yolo_detector import YOLODetector
 from src.rules.rule_engine import RuleEngine
 from src.services.track_service import TrackService
+from src.storage.snapshot import SnapshotRecorder
 from src.storage.video import VideoRecorder
 
 
@@ -21,6 +22,8 @@ class FrameProcessor:
         self.detector = YOLODetector()
 
         self.rule_engine = RuleEngine()
+
+        self.snapshot = SnapshotRecorder()
 
         self.backend = BackendClient()
 
@@ -67,6 +70,10 @@ class FrameProcessor:
 
             frame, detections = self.detector.detect(frame)
 
+            #
+            # TRACKS
+            #
+
             for detection in detections:
 
                 if detection["id"] < 0:
@@ -95,14 +102,40 @@ class FrameProcessor:
                         2,
                     )
 
+            #
+            # RULE ENGINE
+            #
+
             event = self.rule_engine.process(
                 frame,
                 detections,
             )
 
-            self.backend.send(event)
+            #
+            # ENVIA SOMENTE EVENTOS REAIS
+            #
 
-            if detections:
+            if event is not None:
+
+                logger.success(
+                    f"Evento detectado: {event.event_type}"
+                )
+
+                #
+                # Snapshot
+                #
+
+                snapshot = self.snapshot.save(frame)
+
+                event.snapshot = snapshot
+
+                logger.success(
+                    f"Snapshot salvo: {snapshot}"
+                )
+
+                #
+                # Vídeo
+                #
 
                 if time.time() - self.last_video > 10:
 
@@ -110,11 +143,15 @@ class FrameProcessor:
                         list(self.buffer)
                     )
 
+                    event.video = video
+
                     logger.success(
                         f"Vídeo salvo: {video}"
                     )
 
                     self.last_video = time.time()
+
+                self.backend.send(event)
 
             people = len(
                 [
