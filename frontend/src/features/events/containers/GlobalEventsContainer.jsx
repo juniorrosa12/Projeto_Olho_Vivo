@@ -20,9 +20,13 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import { useNavigate } from 'react-router-dom';
 import { useEventLogStore } from '../../../infrastructure/stores/useEventLogStore';
+import { useTriageStore } from '../../../infrastructure/stores/useTriageStore';
 
 export default function GlobalEventsContainer() {
+  const navigate = useNavigate();
+  const { setInspectedEvent } = useTriageStore();
   const {
     searchQuery,
     selectedSeverity,
@@ -160,7 +164,16 @@ export default function GlobalEventsContainer() {
                   />
                 </TableCell>
                 <TableCell align="right" sx={{ borderColor: '#1E293B' }}>
-                  <Button size="small" startIcon={<VisibilityIcon sx={{ fontSize: 14 }} />} sx={{ color: '#38BDF8', textTransform: 'none' }}>
+                  <Button
+                    size="small"
+                    startIcon={<VisibilityIcon sx={{ fontSize: 14 }} />}
+                    onClick={() => {
+                      setInspectedEvent(log);
+                      sessionStorage.setItem('inspect_event_id', log.id);
+                      navigate('/validation');
+                    }}
+                    sx={{ color: '#38BDF8', textTransform: 'none' }}
+                  >
                     Inspecionar
                   </Button>
                 </TableCell>

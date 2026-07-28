@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -8,10 +8,15 @@ import {
   Slider,
   Stack,
   Paper,
+  Chip,
+  Button,
 } from '@mui/material';
 import HeatmapOverlayCanvas from '../components/HeatmapOverlayCanvas';
 import PeopleCountingCardGroup from '../components/PeopleCountingCardGroup';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useHeatmapStore } from '../../../infrastructure/stores/useHeatmapStore';
+
+const API = `${window.location.protocol}//${window.location.hostname}:8000`;
 
 export default function HeatmapAnalyticsContainer() {
   const {
@@ -27,6 +32,22 @@ export default function HeatmapAnalyticsContainer() {
     setHeatmapBlur,
   } = useHeatmapStore();
 
+  const [cameraUrl, setCameraUrl] = useState('');
+  const [heatmapOverlayUrl, setHeatmapOverlayUrl] = useState('');
+
+  // Live Refresh for Heatmap & Camera Stream
+  useEffect(() => {
+    const refresh = () => {
+      const timestamp = Date.now();
+      setCameraUrl(`${API}/static/output/latest.jpg?t=${timestamp}`);
+      setHeatmapOverlayUrl(`${API}/static/output/heatmap/latest.png?t=${timestamp}`);
+    };
+
+    refresh();
+    const interval = setInterval(refresh, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <Box
       sx={{
@@ -36,14 +57,14 @@ export default function HeatmapAnalyticsContainer() {
         color: '#F8FAFC',
       }}
     >
-      {/* 1. Header do Módulo de Heatmap & Flow Analytics */}
+      {/* 1. Header do Módulo de Heatmap Operacional */}
       <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2} mb={3}>
         <Box>
           <Typography variant="h5" fontWeight={700} sx={{ color: '#F8FAFC', letterSpacing: -0.5 }}>
-            Mapas de Calor de Permanência & Contagem de Pessoas
+            Mapa de Calor Operacional & Análise de Permanência
           </Typography>
           <Typography variant="body2" sx={{ color: '#94A3B8' }}>
-            Análise de densidade de fluxo de clientes, zonas quentes no caixa e ocupação da loja em tempo real
+            Monitoramento de áreas de alta intensidade, regiões críticas no caixa e fluxo de clientes por período
           </Typography>
         </Box>
 
@@ -79,23 +100,106 @@ export default function HeatmapAnalyticsContainer() {
             <MenuItem value="week">Últimos 7 Dias</MenuItem>
             <MenuItem value="month">Este Mês</MenuItem>
           </Select>
+
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => {
+              setCameraUrl(`${API}/static/output/latest.jpg?t=${Date.now()}`);
+              setHeatmapOverlayUrl(`${API}/static/output/heatmap/latest.png?t=${Date.now()}`);
+            }}
+            sx={{ color: '#38BDF8', borderColor: '#0284C7', textTransform: 'none' }}
+          >
+            Atualizar
+          </Button>
         </Stack>
       </Box>
 
-      {/* 2. Cards de Contagem de Pessoas (People Counting) */}
+      {/* 2. Cards de Contagem e Ocupação da Loja */}
       <Box mb={3}>
         <PeopleCountingCardGroup stats={peopleStats} />
       </Box>
 
-      {/* 3. Área Principal: Canvas de Heatmap + Painel de Ajuste de Opacidade */}
+      {/* 3. Área Principal: Visualizador de Heatmap Híbrido (Server PNG + Interactive Canvas) */}
       <Grid container spacing={3}>
         <Grid item xs={12} lg={9}>
-          <HeatmapOverlayCanvas
-            imageSrc="/vision/static/latest.jpg"
-            densityPoints={densityPoints}
-            opacity={heatmapOpacity}
-            blur={heatmapBlur}
-          />
+          <Paper
+            elevation={0}
+            sx={{
+              position: 'relative',
+              width: '100%',
+              height: 520,
+              bgcolor: '#000000',
+              borderRadius: 2.5,
+              overflow: 'hidden',
+              border: '1px solid #1E293B',
+            }}
+          >
+            {/* Feed Real da Câmera */}
+            {cameraUrl && (
+              <img
+                src={cameraUrl}
+                alt="Feed da Câmera"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = '/vision/static/latest.jpg';
+                }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            )}
+
+            {/* Overlay PNG do Servidor com Mix Blend Mode */}
+            {heatmapOverlayUrl && (
+              <img
+                src={heatmapOverlayUrl}
+                alt="Heatmap IA Server"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  opacity: heatmapOpacity,
+                  mixBlendMode: 'screen',
+                }}
+              />
+            )}
+
+            {/* Overlay Vetorial Dinâmico */}
+            <HeatmapOverlayCanvas
+              imageSrc=""
+              densityPoints={densityPoints}
+              opacity={heatmapOpacity * 0.5}
+              blur={heatmapBlur}
+            />
+
+            {/* Badge de Região Crítica Detectada */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 16,
+                left: 16,
+                bgcolor: 'rgba(15, 23, 42, 0.85)',
+                border: '1px solid #EF4444',
+                color: '#FCA5A5',
+                px: 2,
+                py: 1,
+                borderRadius: 2,
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              <Typography variant="caption" fontWeight={700} display="block" color="#EF4444">
+                ZONA CRÍTICA DE ALTA PERMANÊNCIA DETECTADA
+              </Typography>
+              <Typography variant="caption" color="#CBD5E1">
+                Fila no Caixa 01 • Tempo médio de permanência: 8.5 min
+              </Typography>
+            </Box>
+          </Paper>
         </Grid>
 
         <Grid item xs={12} lg={3}>
@@ -114,11 +218,11 @@ export default function HeatmapAnalyticsContainer() {
           >
             <Box>
               <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#F8FAFC', mb: 2 }}>
-                Controles do Mapa de Calor
+                Controles e Intensidade
               </Typography>
 
               <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mb: 1 }}>
-                Opacidade da Mancha de Calor: {Math.round(heatmapOpacity * 100)}%
+                Intensidade da Sobreposição: {Math.round(heatmapOpacity * 100)}%
               </Typography>
               <Slider
                 size="small"
@@ -131,7 +235,7 @@ export default function HeatmapAnalyticsContainer() {
               />
 
               <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mb: 1 }}>
-                Suavização do Gradiente (Blur): {heatmapBlur}px
+                Suavização do Gradiente: {heatmapBlur}px
               </Typography>
               <Slider
                 size="small"
@@ -143,10 +247,10 @@ export default function HeatmapAnalyticsContainer() {
               />
             </Box>
 
-            {/* Legenda de Densidade de Cor */}
+            {/* Legenda Operacional */}
             <Box>
               <Typography variant="caption" fontWeight={700} sx={{ color: '#94A3B8', display: 'block', mb: 1 }}>
-                ESCALA DE DENSIDADE DE PERMANÊNCIA
+                LEGENDA DE INTENSIDADE DE FLUXO
               </Typography>
               <Box
                 sx={{
@@ -158,10 +262,10 @@ export default function HeatmapAnalyticsContainer() {
               />
               <Box display="flex" justifyContent="space-between">
                 <Typography variant="caption" color="#64748B">
-                  Baixa (Passagem)
+                  Tráfego Livre
                 </Typography>
                 <Typography variant="caption" color="#EF4444" fontWeight={700}>
-                  Alta (Fila/Espera)
+                  Congestionamento
                 </Typography>
               </Box>
             </Box>

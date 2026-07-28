@@ -1,11 +1,38 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Paper, Box, Typography, Chip, Stack, IconButton, Tooltip } from '@mui/material';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
+const API = `${window.location.protocol}//${window.location.hostname}:8000`;
+
 export default function CameraStreamCard({ camera, onFocus }) {
   const isOnline = camera.status === 'ONLINE';
+  const [frameUrl, setFrameUrl] = useState('');
+
+  const videoSrc = camera.video
+    ? (camera.video.startsWith('http') || camera.video.startsWith('/')
+        ? (camera.video.startsWith('http') ? camera.video : `${API}${camera.video}`)
+        : `${API}/static/${camera.video}`)
+    : null;
+
+  // Atualização em Tempo Real do Frame de Imagem (Caso não seja vídeo MP4)
+  useEffect(() => {
+    if (videoSrc) return;
+
+    const updateFrame = () => {
+      const timestamp = Date.now();
+      const rawUrl = camera.snapshot || '/static/output/latest.jpg';
+      const fullUrl = rawUrl.startsWith('http')
+        ? `${rawUrl}?t=${timestamp}`
+        : `${API}${rawUrl}?t=${timestamp}`;
+      setFrameUrl(fullUrl);
+    };
+
+    updateFrame();
+    const interval = setInterval(updateFrame, 1000);
+    return () => clearInterval(interval);
+  }, [camera.snapshot, videoSrc]);
 
   return (
     <Paper
@@ -21,7 +48,7 @@ export default function CameraStreamCard({ camera, onFocus }) {
         boxShadow: camera.hasAlert ? `0 0 16px ${camera.severity === 'CRITICAL' ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.25)'}` : 'none',
       }}
     >
-      {/* 1. Header do Card com Nome da Câmera e Status */}
+      {/* Header da Câmera */}
       <Box
         sx={{
           px: 1.5,
@@ -64,31 +91,44 @@ export default function CameraStreamCard({ camera, onFocus }) {
         </Stack>
       </Box>
 
-      {/* 2. Container de Mídia/Feed de Vídeo */}
+      {/* Container de Vídeo MP4 ou Stream de Imagens */}
       <Box
         sx={{
           position: 'relative',
           bgcolor: '#000000',
-          height: 200,
+          height: 220,
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
           overflow: 'hidden',
         }}
       >
-        {camera.snapshot ? (
+        {videoSrc ? (
+          <video
+            src={videoSrc}
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : frameUrl ? (
           <img
-            src={camera.snapshot}
+            src={frameUrl}
             alt={camera.name}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = '/vision/static/latest.jpg';
+            }}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (
           <Typography variant="caption" color="#64748B">
-            Aguardando sinal de vídeo RTSP...
+            Aguardando sinal RTSP...
           </Typography>
         )}
 
-        {/* Banner de Alerta de Incidente se Houver */}
+        {/* Banner de Alerta de Incidente */}
         {camera.hasAlert && (
           <Box
             sx={{
@@ -115,7 +155,7 @@ export default function CameraStreamCard({ camera, onFocus }) {
         )}
       </Box>
 
-      {/* 3. Rodapé com Pills das Detecções Ativas */}
+      {/* Detecções Ativas */}
       <Box sx={{ p: 1.2, bgcolor: '#0F172A', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
         <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 600 }}>
           Detecções:

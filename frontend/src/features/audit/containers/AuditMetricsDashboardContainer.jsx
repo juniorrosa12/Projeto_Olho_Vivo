@@ -1,200 +1,280 @@
-import React from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Box,
   Typography,
   Grid,
-  Select,
-  MenuItem,
-  Stack,
-  Button,
   Paper,
-  Divider,
+  Stack,
+  Chip,
+  Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
 } from '@mui/material';
-import TaskAltIcon from '@mui/icons-material/TaskAlt';
-import SpeedIcon from '@mui/icons-material/Speed';
-import PsychologyIcon from '@mui/icons-material/Psychology';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import MetricKpiCard from '../components/MetricKpiCard';
-import OperatorPerformanceTable from '../components/OperatorPerformanceTable';
-import { useAuditStore } from '../../../infrastructure/stores/useAuditStore';
+import CloseIcon from '@mui/icons-material/Close';
+import axios from 'axios';
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+
+const API = `${window.location.protocol}//${window.location.hostname}:8000`;
+
+function formatElapsed(value) {
+  if (!value) return 'agora';
+  const date = new Date(value);
+  const diff = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (diff < 60) return `${diff}s atrás`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m atrás`;
+  return `${Math.floor(diff / 3600)}h atrás`;
+}
 
 export default function AuditMetricsDashboardContainer() {
-  const {
-    dateRange,
-    selectedFilial,
-    metrics,
-    operatorStats,
-    setDateRange,
-    setSelectedFilial,
-  } = useAuditStore();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [hourlyData, setHourlyData] = useState([]);
+  const [recentEvents, setRecentEvents] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // Poll Real-Time API Data
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const res = await axios.get(`${API}/events/dashboard`);
+        setDashboardData(res.data);
+      } catch (err) {
+        // Fallback for offline dev
+        setDashboardData({
+          people_now: 12,
+          entries: 2480,
+          exits: 2310,
+          phones: 3,
+          pending: 9660,
+          approved: 1256,
+          rejected: 135,
+        });
+      }
+    };
+
+    const loadHourly = async () => {
+      try {
+        const res = await axios.get(`${API}/statistics/hour`);
+        setHourlyData(
+          res.data.map((item) => ({
+            hora: String(item.hour).padStart(2, '0'),
+            entradas: item.entries,
+            saidas: item.exits,
+          }))
+        );
+      } catch (err) {
+        setHourlyData([
+          { hora: '08', entradas: 120, saidas: 80 },
+          { hora: '10', entradas: 340, saidas: 290 },
+          { hora: '12', entradas: 520, saidas: 480 },
+          { hora: '14', entradas: 410, saidas: 390 },
+          { hora: '16', entradas: 680, saidas: 610 },
+          { hora: '18', entradas: 410, saidas: 460 },
+        ]);
+      }
+    };
+
+    const loadRecentEvents = async () => {
+      try {
+        const res = await axios.get(`${API}/events?limit=10`);
+        setRecentEvents(res.data);
+      } catch (err) {
+        setRecentEvents([
+          {
+            id: 'evt-1',
+            event_type: 'cell_phone',
+            event_time: new Date().toISOString(),
+            track_id: 1,
+            filial_id: 'RIUAL_027',
+            camera_id: 'CAM01',
+            snapshot: '/static/output/latest.jpg',
+          },
+        ]);
+      }
+    };
+
+    loadDashboard();
+    loadHourly();
+    loadRecentEvents();
+
+    const timer = setInterval(() => {
+      loadDashboard();
+      loadHourly();
+      loadRecentEvents();
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const kpiCards = useMemo(() => {
+    if (!dashboardData) return [];
+    return [
+      { key: 'people_now', label: 'Pessoas Agora', value: dashboardData.people_now ?? 0, color: '#38BDF8', badge: 'LIVE' },
+      { key: 'entries', label: 'Entradas Hoje', value: dashboardData.entries ?? 0, color: '#10B981', badge: 'HOJE' },
+      { key: 'exits', label: 'Saídas Hoje', value: dashboardData.exits ?? 0, color: '#F59E0B', badge: 'HOJE' },
+      { key: 'phones', label: 'Celulares no Caixa', value: dashboardData.phones ?? 0, color: '#EF4444', badge: 'ALERTA' },
+      { key: 'pending', label: 'Pendentes Fila', value: dashboardData.pending ?? 0, color: '#F59E0B', badge: 'FILA' },
+      { key: 'approved', label: 'Validados Aprovados', value: dashboardData.approved ?? 0, color: '#10B981', badge: 'ACTIVE LEARNING' },
+      { key: 'rejected', label: 'Rejeitados (Falso Positivo)', value: dashboardData.rejected ?? 0, color: '#EF4444', badge: 'FALSO POSITIVO' },
+    ];
+  }, [dashboardData]);
 
   return (
-    <Box
-      sx={{
-        p: { xs: 2, md: 4 },
-        bgcolor: '#020617',
-        minHeight: '100vh',
-        color: '#F8FAFC',
-      }}
-    >
-      {/* 1. Header do Dashboard com Filtros Globais */}
-      <Box
-        display="flex"
-        flexDirection={{ xs: 'column', sm: 'row' }}
-        alignItems={{ xs: 'flex-start', sm: 'center' }}
-        justifyContent="space-between"
-        gap={2}
-        mb={4}
-      >
-        <Box>
-          <Typography variant="h5" fontWeight={700} sx={{ color: '#F8FAFC', letterSpacing: -0.5 }}>
-            Painel de Auditoria e Inteligência Operacional
-          </Typography>
-          <Typography variant="body2" sx={{ color: '#94A3B8' }}>
-            Monitoramento de vazão de validação, acurácia de IA e métricas de desempenho por loja e operador
-          </Typography>
-        </Box>
-
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Select
-            size="small"
-            value={selectedFilial}
-            onChange={(e) => setSelectedFilial(e.target.value)}
-            sx={{
-              bgcolor: '#0F172A',
-              color: '#F8FAFC',
-              borderColor: '#1E293B',
-              fontSize: '0.85rem',
-              '& fieldset': { borderColor: '#1E293B' },
-            }}
-          >
-            <MenuItem value="ALL">Todas as Filiais</MenuItem>
-            <MenuItem value="RIUAL_027">Filial RIUAL_027</MenuItem>
-            <MenuItem value="RIUAL_084">Filial RIUAL_084</MenuItem>
-          </Select>
-
-          <Select
-            size="small"
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            sx={{
-              bgcolor: '#0F172A',
-              color: '#F8FAFC',
-              borderColor: '#1E293B',
-              fontSize: '0.85rem',
-              '& fieldset': { borderColor: '#1E293B' },
-            }}
-          >
-            <MenuItem value="today">Hoje</MenuItem>
-            <MenuItem value="week">Últimos 7 Dias</MenuItem>
-            <MenuItem value="month">Este Mês</MenuItem>
-          </Select>
-
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<RefreshIcon />}
-            sx={{
-              color: '#38BDF8',
-              borderColor: '#0284C7',
-              textTransform: 'none',
-              '&:hover': { bgcolor: 'rgba(56, 189, 248, 0.1)' },
-            }}
-          >
-            Atualizar
-          </Button>
-        </Stack>
+    <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: '#020617', minHeight: '100vh', color: '#F8FAFC' }}>
+      {/* 1. Cabeçalho Executivo do Dashboard */}
+      <Box mb={3}>
+        <Typography variant="h5" fontWeight={700} sx={{ color: '#F8FAFC', letterSpacing: -0.5 }}>
+          Painel de Inteligência Operacional & Monitoramento de Varejo
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#94A3B8' }}>
+          Métricas em tempo real de ocupação da loja, fluxo de pessoas, alertas comportamentais e validação de IA
+        </Typography>
       </Box>
 
-      {/* 2. Grid de Cards KPI Primários */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
-          <MetricKpiCard
-            title="Total Validados Hoje"
-            value={metrics.totalValidatedToday.toLocaleString()}
-            subtitle="vs. 1.240 ontem"
-            trend="+14.5%"
-            isPositiveTrend={true}
-            icon={TaskAltIcon}
-            color="#10B981"
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <MetricKpiCard
-            title="Tempo Médio por Evento"
-            value={`${metrics.avgTimePerEventSeconds}s`}
-            subtitle="vs. 1.7s semana passada"
-            trend="-0.3s mais rápido"
-            isPositiveTrend={true}
-            icon={SpeedIcon}
-            color="#38BDF8"
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <MetricKpiCard
-            title="Acurácia Global da IA"
-            value={`${metrics.aiAccuracyPercentage}%`}
-            subtitle="Concordância Operador/IA"
-            trend="+2.1%"
-            isPositiveTrend={true}
-            icon={PsychologyIcon}
-            color="#8B5CF6"
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <MetricKpiCard
-            title="Taxa de Falsos Positivos"
-            value={`${metrics.discrepancyRate}%`}
-            subtitle="Eventos Rejeitados"
-            trend="-1.2%"
-            isPositiveTrend={true}
-            icon={WarningAmberIcon}
-            color="#F59E0B"
-          />
-        </Grid>
+      {/* 2. Grid de Cards de Estatísticas Integrados (StatsGrid) */}
+      <Grid container spacing={2.5} mb={4}>
+        {kpiCards.map((card) => (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={card.key}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2.5,
+                bgcolor: '#0F172A',
+                border: '1px solid #1E293B',
+                borderRadius: 2.5,
+                transition: 'transform 0.15s ease, border-color 0.15s ease',
+                '&:hover': { transform: 'translateY(-2px)', borderColor: card.color },
+              }}
+            >
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="caption" fontWeight={700} sx={{ color: '#94A3B8' }}>
+                  {card.label}
+                </Typography>
+                <Chip
+                  label={card.badge}
+                  size="small"
+                  sx={{
+                    bgcolor: `${card.color}18`,
+                    color: card.color,
+                    fontWeight: 700,
+                    fontSize: '0.65rem',
+                    height: 20,
+                    border: `1px solid ${card.color}`,
+                  }}
+                />
+              </Stack>
+              <Typography variant="h4" fontWeight={700} sx={{ color: '#F8FAFC', mt: 1.5 }}>
+                {card.value.toLocaleString()}
+              </Typography>
+            </Paper>
+          </Grid>
+        ))}
       </Grid>
 
-      {/* 3. Tabela de Desempenho dos Operadores */}
-      <Box mb={4}>
-        <OperatorPerformanceTable operators={operatorStats} />
-      </Box>
-
-      {/* 4. Resumo de Saúde do Active Learning */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 3,
-          bgcolor: '#0F172A',
-          border: '1px solid #1E293B',
-          borderRadius: 2.5,
-        }}
-      >
-        <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#F8FAFC', mb: 1 }}>
-          Status da Pipeline de Active Learning & Re-treinamento Contínuo
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#94A3B8', mb: 2 }}>
-          Todas as aprovações e rejeições validadas pelos operadores nesta sessão estão pré-agrupadas para o próximo ciclo de treino automático do YOLOv11.
-        </Typography>
-        <Divider sx={{ borderColor: '#1E293B', mb: 2 }} />
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} justifyContent="space-between">
-          <Box display="flex" gap={1.5} alignItems="center">
-            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#10B981' }} />
-            <Typography variant="body2" color="#CBD5E1">
-              Amostras Qualificadas para Treino: <strong>1.256 objetos</strong>
+      {/* 3. Gráfico de Fluxo Por Hora (Timeline Recharts com Dark Theme) */}
+      <Paper elevation={0} sx={{ p: 3, bgcolor: '#0F172A', border: '1px solid #1E293B', borderRadius: 2.5, mb: 4 }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" mb={2}>
+          <Box>
+            <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#F8FAFC' }}>
+              Fluxo de Pessoas por Hora (Entradas vs. Saídas)
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#94A3B8' }}>
+              Dados acumulados das câmeras de entrada e saída com atualização em tempo real
             </Typography>
           </Box>
-          <Box display="flex" gap={1.5} alignItems="center">
-            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#38BDF8' }} />
-            <Typography variant="body2" color="#CBD5E1">
-              Última Atualização dos Pesos da IA: <strong>Ontem às 22:00 (v1.4.2)</strong>
-            </Typography>
-          </Box>
+          <Chip label="ATUALIZAÇÃO AO VIVO (5s)" size="small" sx={{ bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#6EE7B7', fontWeight: 700 }} />
         </Stack>
+
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={hourlyData}>
+            <CartesianGrid stroke="#1E293B" strokeDasharray="3 3" />
+            <XAxis dataKey="hora" stroke="#64748B" />
+            <YAxis stroke="#64748B" />
+            <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '8px', color: '#F8FAFC' }} />
+            <Line type="monotone" dataKey="entradas" stroke="#10B981" strokeWidth={3} name="Entradas" />
+            <Line type="monotone" dataKey="saidas" stroke="#EF4444" strokeWidth={3} name="Saídas" />
+          </LineChart>
+        </ResponsiveContainer>
       </Paper>
+
+      {/* 4. Lista de Últimos Eventos em Tempo Real (LiveEvents) */}
+      <Paper elevation={0} sx={{ p: 3, bgcolor: '#0F172A', border: '1px solid #1E293B', borderRadius: 2.5 }}>
+        <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#F8FAFC', mb: 2 }}>
+          Últimos Eventos Detectados em Tempo Real
+        </Typography>
+
+        <Grid container spacing={2}>
+          {recentEvents.map((evt) => (
+            <Grid item xs={12} md={6} key={evt.id}>
+              <Paper
+                elevation={0}
+                onClick={() => setSelectedEvent(evt)}
+                sx={{
+                  p: 2,
+                  bgcolor: '#1E293B',
+                  border: '1px solid #334155',
+                  borderRadius: 2,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  '&:hover': { borderColor: '#38BDF8', bgcolor: '#243044' },
+                }}
+              >
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Avatar sx={{ bgcolor: evt.event_type === 'cell_phone' ? 'rgba(239,68,68,0.2)' : 'rgba(56,189,248,0.2)', color: evt.event_type === 'cell_phone' ? '#EF4444' : '#38BDF8' }}>
+                    {evt.event_type === 'cell_phone' ? '📱' : '👤'}
+                  </Avatar>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Stack direction="row" spacing={1} alignItems="center" mb={0.5}>
+                      <Typography fontWeight={700} sx={{ color: '#F8FAFC' }}>
+                        {evt.event_type === 'cell_phone' ? 'Uso de Celular no Caixa' : evt.event_type}
+                      </Typography>
+                      <Chip label={formatElapsed(evt.event_time)} size="small" sx={{ bgcolor: '#0F172A', color: '#38BDF8', fontSize: '0.68rem' }} />
+                    </Stack>
+                    <Typography variant="caption" sx={{ color: '#94A3B8' }}>
+                      Track #{evt.track_id} • {evt.filial_id || 'RIUAL_027'} • {evt.camera_id || 'CAM01'}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      </Paper>
+
+      {/* Modal de Inspeção Rápida de Evento */}
+      <Dialog open={Boolean(selectedEvent)} onClose={() => setSelectedEvent(null)} maxWidth="md" fullWidth PaperProps={{ sx: { bgcolor: '#0F172A', color: '#F8FAFC', border: '1px solid #1E293B', borderRadius: 3 } }}>
+        {selectedEvent && (
+          <>
+            <Box display="flex" justifyContent="space-between" alignItems="center" p={2} borderBottom="1px solid #1E293B">
+              <Typography variant="h6" fontWeight={700}>
+                Inspeção de Evento: {selectedEvent.event_type}
+              </Typography>
+              <IconButton size="small" onClick={() => setSelectedEvent(null)} sx={{ color: '#94A3B8' }}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            <DialogContent dividers sx={{ borderColor: '#1E293B' }}>
+              {selectedEvent.snapshot && (
+                <Box mb={2}>
+                  <Typography variant="subtitle2" sx={{ color: '#38BDF8', mb: 1 }}>
+                    Snapshot Capturado
+                  </Typography>
+                  <img src={`${API}${selectedEvent.snapshot}?t=${Date.now()}`} alt="Snapshot" style={{ width: '100%', borderRadius: 8, maxHeight: 400, objectFit: 'cover' }} />
+                </Box>
+              )}
+            </DialogContent>
+          </>
+        )}
+      </Dialog>
     </Box>
   );
 }

@@ -5,6 +5,8 @@ import { useAnnotationStore } from "../infrastructure/stores/useAnnotationStore"
 import { createAnnotation, deleteAnnotation } from "../api/annotations";
 import { getClassDefinition } from "../domain/annotation/ClassCatalog";
 
+import { useTriageStore } from "../infrastructure/stores/useTriageStore";
+
 const API = `${window.location.protocol}//${window.location.hostname}:8000`;
 
 const normalizeBoxes = (boxes = []) => {
@@ -41,9 +43,34 @@ export default function Validation() {
 
   const [loading, setLoading] = useState(false);
 
+  const { inspectedEvent, clearInspectedEvent } = useTriageStore();
+
   const load = useCallback(async () => {
     try {
       setLoading(true);
+
+      const inspectId = sessionStorage.getItem('inspect_event_id');
+      if (inspectedEvent || inspectId) {
+        const targetId = inspectedEvent?.id || inspectId;
+        try {
+          const res = await axios.get(`${API}/events/${targetId}`);
+          setEvent(res.data);
+          const detected = normalizeBoxes(res.data?.bbox || res.data?.boxes);
+          setBoxes(detected);
+        } catch {
+          // Se não encontrar o id exato via API, carrega o objeto do estado
+          if (inspectedEvent) {
+            setEvent(inspectedEvent);
+            setBoxes(normalizeBoxes(inspectedEvent.boxes || []));
+          }
+        }
+        sessionStorage.removeItem('inspect_event_id');
+        clearInspectedEvent();
+        setSavedAnnotationIds([]);
+        setSaveError("");
+        return;
+      }
+
       const [eventRes, statsRes] = await Promise.all([
         axios.get(`${API}/validation/next`),
         axios.get(`${API}/validation/stats`),
@@ -60,7 +87,7 @@ export default function Validation() {
     } finally {
       setLoading(false);
     }
-  }, [setBoxes]);
+  }, [inspectedEvent, clearInspectedEvent, setBoxes]);
 
   const handleDecision = async (action) => {
     if (!event?.id) return;

@@ -1,6 +1,6 @@
 import React from "react";
-import AISettingsContainer from "../features/settings/containers/AISettingsContainer";
+import SystemSettingsContainer from "../features/settings/containers/SystemSettingsContainer";
 
 export default function Settings() {
-  return <AISettingsContainer />;
+  return <SystemSettingsContainer />;
 }
