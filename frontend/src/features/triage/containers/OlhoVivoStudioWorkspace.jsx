@@ -4,10 +4,12 @@ import TriageHeader from '../components/TriageHeader';
 import TriageActionDock from '../components/TriageActionDock';
 import ObjectInspectorSidebar from '../components/ObjectInspectorSidebar';
 import HotkeyGuideModal from '../components/HotkeyGuideModal';
+import RejectionReasonModal from '../components/RejectionReasonModal';
 import EnhancedCanvasEngine from '../../../components/annotation/EnhancedCanvasEngine';
 import VideoTimelinePlayer from '../../../components/media/VideoTimelinePlayer';
 import { useAnnotationStore } from '../../../infrastructure/stores/useAnnotationStore';
 import { useHotkeys } from '../../../hooks/useHotkeys';
+import { DatasetManagerService } from '../../../services/ai/DatasetManagerService';
 
 export default function OlhoVivoStudioWorkspace({
   event,
@@ -24,11 +26,32 @@ export default function OlhoVivoStudioWorkspace({
 }) {
   const { boxes, selectedId, selectBox, setBoxes } = useAnnotationStore();
   const [saveErrorMessage, setSaveErrorMessage] = useState(saveError || '');
+  const [openRejectionModal, setOpenRejectionModal] = useState(false);
+
+  // Trigger para Aprovação Supervisionada com salvamento em dataset/aprovados
+  const handleApproveWithDataset = () => {
+    if (event) {
+      DatasetManagerService.approveEvent({ ...event, boxes });
+    }
+    onApprove?.();
+  };
+
+  // Trigger para Rejeição com modal de motivo obrigatório
+  const handleRejectTrigger = () => {
+    setOpenRejectionModal(true);
+  };
+
+  const handleConfirmRejection = ({ reason, notes }) => {
+    if (event) {
+      DatasetManagerService.rejectEvent({ ...event, boxes }, reason, notes);
+    }
+    onReject?.();
+  };
 
   // Register keyboard shortcuts engine
   useHotkeys({
-    onApprove,
-    onReject,
+    onApprove: handleApproveWithDataset,
+    onReject: handleRejectTrigger,
     onNext,
     onPrev,
   });
@@ -114,8 +137,8 @@ export default function OlhoVivoStudioWorkspace({
 
       {/* 3. Dock Inferior de Ação Rápida */}
       <TriageActionDock
-        onApprove={onApprove}
-        onReject={onReject}
+        onApprove={handleApproveWithDataset}
+        onReject={handleRejectTrigger}
         onSave={onSave}
         onNext={onNext}
         onPrev={onPrev}
@@ -125,6 +148,13 @@ export default function OlhoVivoStudioWorkspace({
 
       {/* 4. Modal de Guia de Teclas de Atalho */}
       <HotkeyGuideModal />
+
+      {/* 5. Modal de Motivo da Rejeição (Sprint 51 Active Learning) */}
+      <RejectionReasonModal
+        open={openRejectionModal}
+        onClose={() => setOpenRejectionModal(false)}
+        onConfirm={handleConfirmRejection}
+      />
     </Box>
   );
 }
