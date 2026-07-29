@@ -80,7 +80,7 @@ async def rate_limit_middleware(request: Request, call_next):
         t for t in rate_limit_records[client_ip] if now - t < 60
     ]
     
-    if not request.url.path.startswith("/static") and not client_ip.startswith("172."):
+    if not request.url.path.startswith("/static") and not request.url.path.startswith("/live") and not client_ip.startswith("172."):
         if len(rate_limit_records[client_ip]) >= 120:
             return Response(
                 content='{"detail": "Limite de requisições excedido. Tente novamente em 1 minuto."}',
