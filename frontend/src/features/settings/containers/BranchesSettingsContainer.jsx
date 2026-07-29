@@ -322,10 +322,10 @@ export default function BranchesSettingsContainer() {
         maxWidth="sm"
         fullWidth
         PaperProps={{
-          sx: { bgcolor: '#0F172A', color: '#F8FAFC', border: '1px solid #334155', borderRadius: 3 },
+          sx: { bgcolor: '#0F172A !important', color: '#F8FAFC !important', border: '1px solid #334155', borderRadius: 3, backgroundImage: 'none' },
         }}
       >
-        <DialogTitle display="flex" justifyContent="space-between" alignItems="center" borderBottom="1px solid #334155">
+        <DialogTitle display="flex" justifyContent="space-between" alignItems="center" borderBottom="1px solid #334155" sx={{ bgcolor: '#0F172A', color: '#F8FAFC' }}>
           <Typography variant="h6" fontWeight={800} sx={{ color: '#FFFFFF' }}>
             {editingDvrId ? 'Editar DVR de Loja' : 'Cadastrar Novo DVR de Loja'}
           </Typography>
@@ -334,7 +334,7 @@ export default function BranchesSettingsContainer() {
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ py: 3 }}>
+        <DialogContent sx={{ py: 3, bgcolor: '#0F172A' }}>
           <Stack spacing={2.5} mt={1}>
             <TextField
               label="Nome do DVR"
@@ -342,8 +342,8 @@ export default function BranchesSettingsContainer() {
               fullWidth
               value={newDvrData.name}
               onChange={(e) => setNewDvrData({ ...newDvrData, name: e.target.value })}
-              placeholder="Ex: DVR Principal Caixas"
-              sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+              placeholder="Ex: DVR Filial 28 - Intelbras"
+              sx={{ bgcolor: '#1E293B', borderRadius: 1, input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
             />
 
             <Grid container spacing={2}>
@@ -398,19 +398,20 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.model}
                   onChange={(e) => setNewDvrData({ ...newDvrData, model: e.target.value })}
-                  sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                  placeholder="Ex: MHDX / Multi HD"
+                  sx={{ bgcolor: '#1E293B', borderRadius: 1, input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
                 />
               </Grid>
 
               <Grid item xs={6}>
                 <TextField
-                  label="IP VPN Tailscale"
+                  label="IP VPN NetBird / IP Local"
                   size="small"
                   fullWidth
                   value={newDvrData.tailscaleIp}
                   onChange={(e) => setNewDvrData({ ...newDvrData, tailscaleIp: e.target.value })}
-                  placeholder="100.64.10.X"
-                  sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                  placeholder="100.97.27.16 ou 192.168.1.3"
+                  sx={{ bgcolor: '#1E293B', borderRadius: 1, input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
                 />
               </Grid>
             </Grid>
@@ -424,7 +425,7 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.httpPort}
                   onChange={(e) => setNewDvrData({ ...newDvrData, httpPort: Number(e.target.value) })}
-                  sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                  sx={{ bgcolor: '#1E293B', borderRadius: 1, input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
                 />
               </Grid>
               <Grid item xs={4}>
@@ -435,7 +436,7 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.rtspPort}
                   onChange={(e) => setNewDvrData({ ...newDvrData, rtspPort: Number(e.target.value) })}
-                  sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                  sx={{ bgcolor: '#1E293B', borderRadius: 1, input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
                 />
               </Grid>
               <Grid item xs={4}>
@@ -465,7 +466,7 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.user}
                   onChange={(e) => setNewDvrData({ ...newDvrData, user: e.target.value })}
-                  sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                  sx={{ bgcolor: '#1E293B', borderRadius: 1, input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
                 />
               </Grid>
               <Grid item xs={6}>
@@ -476,7 +477,7 @@ export default function BranchesSettingsContainer() {
                   fullWidth
                   value={newDvrData.password}
                   onChange={(e) => setNewDvrData({ ...newDvrData, password: e.target.value })}
-                  sx={{ input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
+                  sx={{ bgcolor: '#1E293B', borderRadius: 1, input: { color: '#F8FAFC', fontWeight: 600 }, label: { color: '#94A3B8' }, fieldset: { borderColor: '#334155' } }}
                 />
               </Grid>
             </Grid>
