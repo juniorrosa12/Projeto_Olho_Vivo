@@ -43,8 +43,10 @@ export default function MultiCameraLiveGridContainer() {
     const dvr = dvrs.find((d) => d.id === cam.dvrId);
     const branchId = dvr?.branchId || cam.branchId || 'br-1';
     const filialCode = getFilialCode(branchId);
+    const manufacturer = dvr?.manufacturer || 'Intelbras';
     return {
       ...cam,
+      name: cam.name && !cam.name.includes('Hikvision') ? cam.name : `Câmera ${manufacturer} Canal #${cam.channel || 1}`,
       filial: filialCode,
       activeDetections: [],
       hasAlert: false,
