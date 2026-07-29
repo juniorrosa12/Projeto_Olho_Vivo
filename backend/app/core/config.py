@@ -1,5 +1,5 @@
 import json
-from typing import List, Union
+from typing import List, Any
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 horas
     
-    # CORS
-    CORS_ORIGINS: List[str] = [
+    # CORS - Usamos Any para impedir que pydantic-settings force json.loads prévio na env var
+    CORS_ORIGINS: Any = [
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
@@ -26,18 +26,20 @@ class Settings(BaseSettings):
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+    def assemble_cors_origins(cls, v: Any) -> List[str]:
         if isinstance(v, str):
             if not v.strip():
                 return ["*"]
             if v.startswith("[") and v.endswith("]"):
                 try:
-                    return json.loads(v)
+                    res = json.loads(v)
+                    if isinstance(res, list):
+                        return [str(i) for i in res]
                 except Exception:
                     pass
             return [i.strip() for i in v.split(",") if i.strip()]
         elif isinstance(v, list):
-            return v
+            return [str(i) for i in v]
         return ["*"]
 
     class Config:
