@@ -110,6 +110,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Incluir Routers
 app.include_router(auth_router)
 app.include_router(connector_router)
+app.include_router(live_router)
 app.include_router(events_router)
 app.include_router(validation_router)
 app.include_router(dataset_router)

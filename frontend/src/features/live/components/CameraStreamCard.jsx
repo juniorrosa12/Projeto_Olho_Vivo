@@ -26,13 +26,15 @@ export default function CameraStreamCard({ camera, onFocus, isExpanded = false }
 
   const videoSrc = getVideoSrc();
 
-  // Polling do frame estático quando não há stream MP4
+  // Polling do frame estático com endpoint dedicado no-cache
   useEffect(() => {
     if (videoSrc && !videoError) return;
 
     const updateFrame = () => {
       const timestamp = Date.now();
-      const rawUrl = camera.snapshot || '/static/output/latest.jpg';
+      const rawUrl = camera.snapshot && !camera.snapshot.includes('latest.jpg')
+        ? camera.snapshot
+        : '/live/frame';
       const fullUrl = rawUrl.startsWith('http')
         ? `${rawUrl}?t=${timestamp}`
         : `${API}${rawUrl}?t=${timestamp}`;
@@ -55,12 +57,6 @@ export default function CameraStreamCard({ camera, onFocus, isExpanded = false }
       });
     }
   }, [videoSrc, videoError]);
-
-  // Bounding Boxes e ROI para sobreposição no modo Expandido / Grid
-  const sampleBoxes = [
-    { id: '#104', label: 'Pessoa', confidence: '95%', x: 120, y: 50, w: 140, h: 190, color: '#38BDF8' },
-    { id: '#105', label: 'Celular', confidence: '89%', x: 230, y: 110, w: 40, h: 60, color: '#EF4444' },
-  ];
 
   return (
     <Paper
@@ -121,7 +117,7 @@ export default function CameraStreamCard({ camera, onFocus, isExpanded = false }
         </Stack>
       </Box>
 
-      {/* Container de Vídeo com ROI e Bounding Boxes Overlays */}
+      {/* Container de Vídeo */}
       <Box
         sx={{
           position: 'relative',
@@ -149,8 +145,8 @@ export default function CameraStreamCard({ camera, onFocus, isExpanded = false }
             src={frameUrl}
             alt={camera.name}
             onError={(e) => {
-              // Em caso de falha temporaria de leitura do frame, tenta recarregar do backend estatico
-              e.target.src = `${API}/static/output/latest.jpg?t=${Date.now()}`;
+              // Tenta endpoint do stream estatico do backend
+              e.target.src = `${API}/live/frame?t=${Date.now()}`;
             }}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
@@ -159,57 +155,6 @@ export default function CameraStreamCard({ camera, onFocus, isExpanded = false }
             Aguardando sinal RTSP...
           </Typography>
         )}
-
-        {/* Camada Vetorial SVG de ROI & Bounding Boxes em Tempo Real */}
-        <svg
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',
-          }}
-          viewBox="0 0 400 250"
-          preserveAspectRatio="none"
-        >
-          {/* Região de Interesse (ROI Caixa Registradora) */}
-          <polygon
-            points="60,40 340,40 340,220 60,220"
-            fill="none"
-            stroke="#F59E0B"
-            strokeWidth="1.5"
-            strokeDasharray="4 4"
-          />
-          <text x="65" y="34" fill="#F59E0B" fontSize="10" fontWeight="bold">
-            ROI CAIXA REGISTRADORA
-          </text>
-
-          {/* Overlays de Bounding Boxes */}
-          {sampleBoxes.map((b, idx) => (
-            <g key={idx}>
-              <rect
-                x={b.x}
-                y={b.y}
-                width={b.w}
-                height={b.h}
-                fill="rgba(56,189,248,0.12)"
-                stroke={b.color}
-                strokeWidth="2"
-              />
-              <rect
-                x={b.x}
-                y={b.y - 16}
-                width={b.label.length * 7 + 38}
-                height="16"
-                fill={b.color}
-                rx="2"
-              />
-              <text x={b.x + 4} y={b.y - 4} fill="#0F172A" fontSize="9" fontWeight="bold">
-                {b.id} {b.label} {b.confidence}
-              </text>
-            </g>
-          ))}
-        </svg>
 
         {/* Banner de Alerta de Incidente */}
         {camera.hasAlert && (
