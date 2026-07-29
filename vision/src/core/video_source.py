@@ -33,3 +33,38 @@ class MP4VideoSource(VideoSource):
     def release(self):
         if self.cap:
             self.cap.release()
+
+
+class RTSPVideoSource(VideoSource):
+    """Fonte de vídeo RTSP com reconexão automática para DVRs ao vivo."""
+
+    def __init__(self, rtsp_url: str, reconnect_delay: float = 3.0):
+        self.rtsp_url = rtsp_url
+        self.reconnect_delay = reconnect_delay
+        self.cap = None
+
+    def open(self):
+        import time
+        # Configura buffer mínimo para reduzir latência no stream ao vivo
+        self.cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        if not self.cap.isOpened():
+            time.sleep(self.reconnect_delay)
+            self.cap = cv2.VideoCapture(self.rtsp_url)
+        return self.cap.isOpened()
+
+    def read(self):
+        ret, frame = self.cap.read()
+        if not ret:
+            # Tenta reconectar automaticamente
+            import time
+            self.cap.release()
+            time.sleep(self.reconnect_delay)
+            self.cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            ret, frame = self.cap.read()
+        return ret, frame
+
+    def release(self):
+        if self.cap:
+            self.cap.release()

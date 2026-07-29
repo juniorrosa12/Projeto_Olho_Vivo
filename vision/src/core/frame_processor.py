@@ -8,7 +8,7 @@ from loguru import logger
 OUTPUT_DIR = os.environ.get('VISION_OUTPUT_DIR', '/app/output')
 
 from src.api.backend_client import BackendClient
-from src.core.video_source import MP4VideoSource
+from src.core.video_source import MP4VideoSource, RTSPVideoSource
 from src.detectors.yolo_detector import YOLODetector
 from src.rules.rule_engine import RuleEngine
 from src.services.track_service import TrackService
@@ -43,8 +43,13 @@ class FrameProcessor:
         self.last_video = 0
 
     def run(self):
-
-        source = MP4VideoSource(self.video_path)
+        # Seleciona automaticamente RTSP ou arquivo MP4
+        if self.video_path.startswith('rtsp://') or self.video_path.startswith('rtsps://'):
+            source = RTSPVideoSource(self.video_path)
+            logger.info(f"Modo RTSP: conectando em {self.video_path}")
+        else:
+            source = MP4VideoSource(self.video_path)
+            logger.info(f"Modo arquivo: {self.video_path}")
 
         if not source.open():
 
