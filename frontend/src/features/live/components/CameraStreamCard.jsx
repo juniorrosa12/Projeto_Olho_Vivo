@@ -149,8 +149,8 @@ export default function CameraStreamCard({ camera, onFocus, isExpanded = false }
             src={frameUrl}
             alt={camera.name}
             onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = '/vision/static/latest.jpg';
+              // Em caso de falha temporaria de leitura do frame, tenta recarregar do backend estatico
+              e.target.src = `${API}/static/output/latest.jpg?t=${Date.now()}`;
             }}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
