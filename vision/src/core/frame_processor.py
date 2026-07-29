@@ -209,10 +209,14 @@ class FrameProcessor:
                 2,
             )
 
-            cv2.imwrite(
-                os.path.join(OUTPUT_DIR, 'latest.jpg'),
-                frame,
-            )
+            latest_path = os.path.join(OUTPUT_DIR, 'latest.jpg')
+            tmp_path = os.path.join(OUTPUT_DIR, 'latest.jpg.tmp')
+            try:
+                os.makedirs(OUTPUT_DIR, exist_ok=True)
+                cv2.imwrite(tmp_path, frame)
+                os.replace(tmp_path, latest_path)
+            except Exception:
+                cv2.imwrite(latest_path, frame)
 
             if frame_count % 30 == 0:
 

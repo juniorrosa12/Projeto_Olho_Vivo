@@ -32,12 +32,8 @@ export default function CameraStreamCard({ camera, onFocus, isExpanded = false }
 
     const updateFrame = () => {
       const timestamp = Date.now();
-      const rawUrl = camera.snapshot && !camera.snapshot.includes('latest.jpg')
-        ? camera.snapshot
-        : '/live/frame';
-      const fullUrl = rawUrl.startsWith('http')
-        ? `${rawUrl}?t=${timestamp}`
-        : `${API}${rawUrl}?t=${timestamp}`;
+      const rawUrl = '/live/frame';
+      const fullUrl = `${API}${rawUrl}?t=${timestamp}`;
       setFrameUrl(fullUrl);
     };
 
@@ -144,10 +140,6 @@ export default function CameraStreamCard({ camera, onFocus, isExpanded = false }
           <img
             src={frameUrl}
             alt={camera.name}
-            onError={(e) => {
-              // Tenta endpoint do stream estatico do backend
-              e.target.src = `${API}/live/frame?t=${Date.now()}`;
-            }}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (
