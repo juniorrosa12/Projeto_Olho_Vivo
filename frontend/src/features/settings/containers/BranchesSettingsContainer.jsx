@@ -76,10 +76,16 @@ export default function BranchesSettingsContainer() {
     setOpenAddDvrModal(true);
   };
 
-  const handleTestConnection = async (dvrId) => {
-    setTestingDvrId(dvrId);
+  const handleTestConnection = async (dvrIdOrData) => {
+    setTestingDvrId('testing');
     setTestResult(null);
-    const result = await testDvrConnection(dvrId);
+    let result;
+    // Se foi passado 'preview', testa diretamente com os dados do formulário atual
+    if (dvrIdOrData === 'preview') {
+      result = await testDvrConnection('__form__', newDvrData);
+    } else {
+      result = await testDvrConnection(dvrIdOrData);
+    }
     setTestingDvrId(null);
     setTestResult(result);
   };
@@ -484,18 +490,46 @@ export default function BranchesSettingsContainer() {
           </Stack>
         </DialogContent>
 
-        <DialogActions sx={{ p: 2, borderTop: '1px solid #334155', justifyContent: 'space-between' }}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<NetworkCheckIcon />}
-            onClick={() => handleTestConnection('preview')}
-            sx={{ color: '#38BDF8', borderColor: '#334155', textTransform: 'none', fontWeight: 700 }}
-          >
-            Testar Conexão
-          </Button>
+        <DialogActions sx={{ p: 2, borderTop: '1px solid #334155', justifyContent: 'space-between', bgcolor: '#0F172A', flexWrap: 'wrap', gap: 1 }}>
+          <Stack spacing={1} flex={1}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={testingDvrId === 'testing' ? <CircularProgress size={14} color="inherit" /> : <NetworkCheckIcon />}
+              onClick={() => handleTestConnection('preview')}
+              disabled={testingDvrId === 'testing'}
+              sx={{ color: '#38BDF8', borderColor: '#334155', textTransform: 'none', fontWeight: 700, alignSelf: 'flex-start' }}
+            >
+              {testingDvrId === 'testing' ? 'Testando...' : 'Testar Conexão'}
+            </Button>
 
-          <Stack direction="row" spacing={1}>
+            {testResult && (
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 1.5,
+                  bgcolor: testResult.success ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                  border: `1px solid ${testResult.success ? '#10B981' : '#EF4444'}`,
+                }}
+              >
+                <Typography variant="caption" fontWeight={700} sx={{ color: testResult.success ? '#6EE7B7' : '#FCA5A5', display: 'block' }}>
+                  {testResult.success ? '✓ Conexão estabelecida com sucesso!' : '✗ Falha na conexão'}
+                </Typography>
+                {testResult.pingMs && (
+                  <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block' }}>
+                    Ping: {testResult.pingMs}ms | HTTP: {testResult.httpStatus} | RTSP: {testResult.rtspStatus}
+                  </Typography>
+                )}
+                {testResult.message && (
+                  <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block' }}>
+                    {testResult.message}
+                  </Typography>
+                )}
+              </Box>
+            )}
+          </Stack>
+
+          <Stack direction="row" spacing={1} ml={2}>
             <Button onClick={() => setOpenAddDvrModal(false)} sx={{ color: '#94A3B8', textTransform: 'none' }}>
               Cancelar
             </Button>
