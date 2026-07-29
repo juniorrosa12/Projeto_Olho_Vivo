@@ -22,6 +22,7 @@ from app.routes.annotations import router as annotations_router
 from app.routes.auth import router as auth_router
 from app.routes.roi import router as roi_router
 from app.routes.connector import router as connector_router
+from app.routes.live import router as live_router
 
 
 def seed_admin_user():
