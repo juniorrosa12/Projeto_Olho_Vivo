@@ -16,10 +16,17 @@ import GridViewIcon from '@mui/icons-material/GridView';
 import CameraStreamCard from '../components/CameraStreamCard';
 import LiveAlertSidebar from '../components/LiveAlertSidebar';
 import { useLiveStreamStore } from '../../../infrastructure/stores/useLiveStreamStore';
+import { useInfrastructureStore } from '../../../infrastructure/stores/useInfrastructureStore';
+
+function getFilialCode(branchId) {
+  if (!branchId) return '';
+  const num = branchId.replace('br-', '');
+  return `RIUAL_${String(num).padStart(3, '0')}`;
+}
 
 export default function MultiCameraLiveGridContainer() {
   const {
-    cameras,
+    cameras: storeCameras,
     realtimeAlerts,
     gridLayout,
     selectedFilial,
@@ -29,7 +36,33 @@ export default function MultiCameraLiveGridContainer() {
     setFocusedCameraId,
   } = useLiveStreamStore();
 
-  const focusedCamera = cameras.find((c) => c.id === focusedCameraId);
+  const { cameras: infraCameras, dvrs } = useInfrastructureStore();
+
+  // Mapeia câmeras provisionadas da infraestrutura para o formato do Mosaico Live
+  const enrichedInfraCameras = infraCameras.map((cam) => {
+    const dvr = dvrs.find((d) => d.id === cam.dvrId);
+    const branchId = dvr?.branchId || cam.branchId || 'br-1';
+    const filialCode = getFilialCode(branchId);
+    return {
+      ...cam,
+      filial: filialCode,
+      activeDetections: [],
+      hasAlert: false,
+      alertMessage: null,
+      severity: 'INFO',
+    };
+  });
+
+  // Combina câmeras provisionadas reais com a store ao vivo (dando prioridade para câmeras reais cadastradas)
+  const allCameras = enrichedInfraCameras.length > 0 ? enrichedInfraCameras : storeCameras;
+
+  // Filtra as câmeras pela filial selecionada
+  const filteredCameras = allCameras.filter((cam) => {
+    if (selectedFilial === 'ALL') return true;
+    return cam.filial === selectedFilial || getFilialCode(cam.branchId) === selectedFilial;
+  });
+
+  const focusedCamera = allCameras.find((c) => c.id === focusedCameraId);
 
   const getGridCols = () => {
     if (gridLayout === '3x3') return { xs: 12, sm: 6, md: 4 };
@@ -79,8 +112,16 @@ export default function MultiCameraLiveGridContainer() {
               }}
             >
               <MenuItem value="ALL">Todas as Filiais</MenuItem>
-              <MenuItem value="RIUAL_027">Filial RIUAL_027</MenuItem>
-              <MenuItem value="RIUAL_084">Filial RIUAL_084</MenuItem>
+              {Array.from({ length: 50 }, (_, i) => {
+                const numStr = String(i + 1).padStart(2, '0');
+                const codeStr = String(i + 1).padStart(3, '0');
+                const value = `RIUAL_${codeStr}`;
+                return (
+                  <MenuItem key={value} value={value}>
+                    Filial {numStr} (RIUAL_{codeStr})
+                  </MenuItem>
+                );
+              })}
             </Select>
           </Stack>
 
@@ -110,7 +151,7 @@ export default function MultiCameraLiveGridContainer() {
         {/* Grid de Câmeras IP */}
         <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
           <Grid container spacing={2.5}>
-            {cameras.map((camera) => (
+            {filteredCameras.map((camera) => (
               <Grid item key={camera.id} {...getGridCols()}>
                 <CameraStreamCard camera={camera} onFocus={setFocusedCameraId} />
               </Grid>

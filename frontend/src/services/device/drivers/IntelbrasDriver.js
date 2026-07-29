@@ -24,7 +24,7 @@ export class IntelbrasDriver extends DeviceDriverInterface {
     const auth = pass ? `${user}:${pass}@` : `${user}@`;
     const host = this.config.tailscaleIp || '100.64.10.28';
     const port = this.config.rtspPort || 554;
-    return `rtsp://${auth}${host}:${port}/cam/realmonitor?channel=${channel}&subtype=0`;
+    return `rtsp://${auth}${host}:${port}/cam/realmonitor?channel=${channel}&subtype=1`;
   }
 
   async health() {
