@@ -41,13 +41,14 @@ export default function MultiCameraLiveGridContainer() {
   // Mapeia câmeras provisionadas da infraestrutura para o formato do Mosaico Live
   const enrichedInfraCameras = infraCameras.map((cam) => {
     const dvr = dvrs.find((d) => d.id === cam.dvrId);
-    const branchId = dvr?.branchId || cam.branchId || 'br-1';
+    const branchId = dvr?.branchId || cam.branchId || 'br-28';
     const filialCode = getFilialCode(branchId);
     const manufacturer = dvr?.manufacturer || 'Intelbras';
     return {
       ...cam,
       name: cam.name && !cam.name.includes('Hikvision') ? cam.name : `Câmera ${manufacturer} Canal #${cam.channel || 1}`,
       filial: filialCode,
+      snapshot: '/static/output/latest.jpg',
       activeDetections: [],
       hasAlert: false,
       alertMessage: null,
@@ -55,7 +56,7 @@ export default function MultiCameraLiveGridContainer() {
     };
   });
 
-  // Combina câmeras provisionadas reais com a store ao vivo (dando prioridade para câmeras reais cadastradas)
+  // Se houver câmeras cadastradas na infraestrutura, exibe apenas elas; senão exibe as câmeras de demonstração
   const allCameras = enrichedInfraCameras.length > 0 ? enrichedInfraCameras : storeCameras;
 
   // Filtra as câmeras pela filial selecionada

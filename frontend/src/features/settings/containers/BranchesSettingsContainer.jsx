@@ -50,16 +50,16 @@ export default function BranchesSettingsContainer() {
   const [provisioning, setProvisioning] = useState(false);
 
   const initialDvrState = {
-    name: '',
-    manufacturer: 'HIKVISION',
-    model: 'DS-7608NI-K2',
-    tailscaleIp: '100.64.10.30',
+    name: 'DVR Intelbras Filial 28',
+    manufacturer: 'INTELBRAS',
+    model: 'MHDX 1016 / Intelbras',
+    tailscaleIp: '192.168.1.3',
     httpPort: 80,
     rtspPort: 554,
     user: 'admin',
     password: '',
-    channelsCount: 8,
-    branchId: 'br-1',
+    channelsCount: 4,
+    branchId: 'br-28',
   };
 
   const [newDvrData, setNewDvrData] = useState(initialDvrState);
