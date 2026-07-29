@@ -1,8 +1,11 @@
 import time
 from collections import defaultdict, deque
+import os
 
 import cv2
 from loguru import logger
+
+OUTPUT_DIR = os.environ.get('VISION_OUTPUT_DIR', '/app/output')
 
 from src.api.backend_client import BackendClient
 from src.core.video_source import MP4VideoSource
@@ -202,13 +205,13 @@ class FrameProcessor:
             )
 
             cv2.imwrite(
-                "/app/output/latest.jpg",
+                os.path.join(OUTPUT_DIR, 'latest.jpg'),
                 frame,
             )
 
             if frame_count % 30 == 0:
 
-                logger.info(
+                logger.debug(
                     f"Frame {frame_count} | Objetos: {len(detections)}"
                 )
 

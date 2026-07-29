@@ -75,9 +75,9 @@ export default function OlhoVivoStudioWorkspace({
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        height: '100%',
-        width: '100%',
-        minHeight: 'calc(100vh - 70px)',
+        height: 'calc(100vh - 60px)',
+        width: 'calc(100% + 60px)',
+        margin: '-30px',
         bgcolor: '#020617',
         overflow: 'hidden',
         userSelect: 'none',

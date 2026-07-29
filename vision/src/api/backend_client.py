@@ -1,3 +1,4 @@
+import os
 from dataclasses import asdict
 
 import requests
@@ -8,7 +9,7 @@ class BackendClient:
 
     def __init__(self):
 
-        self.base_url = "http://backend:8000"
+        self.base_url = os.environ.get('BACKEND_URL', 'http://backend:8000')
 
     def send(self, event):
 
@@ -16,7 +17,7 @@ class BackendClient:
 
             payload = asdict(event)
 
-            print(payload)
+            logger.debug(f'Payload: {payload}')
 
             response = requests.post(
                 f"{self.base_url}/events/",

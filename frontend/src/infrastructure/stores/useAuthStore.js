@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import api from '../../api/api';
 
 export const ROLES = {
   GLOBAL_ADMIN: 'GLOBAL_ADMIN',
@@ -10,44 +11,48 @@ export const ROLES = {
   GUEST: 'GUEST',
 };
 
-export const useAuthStore = create((set) => ({
-  isAuthenticated: true,
-  token: 'jwt-bearer-token-enterprise-v1',
-  refreshToken: 'jwt-refresh-token-v1',
-  user: {
-    id: 'usr-1',
-    name: 'Engenheiro Chefe (CTO)',
-    email: 'admin@olhovivo.ai',
-    role: ROLES.GLOBAL_ADMIN,
-    companyId: 'comp-riual',
-    branchId: 'br-1',
-    ldapEnabled: true,
+const savedToken = localStorage.getItem('olhovivo_token');
+const savedUser = localStorage.getItem('olhovivo_user');
+
+export const useAuthStore = create((set, get) => ({
+  isAuthenticated: Boolean(savedToken),
+  token: savedToken || null,
+  user: savedUser ? JSON.parse(savedUser) : null,
+  loading: false,
+  error: null,
+
+  login: async (email, password) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      const { access_token, user } = response.data;
+
+      localStorage.setItem('olhovivo_token', access_token);
+      localStorage.setItem('olhovivo_user', JSON.stringify(user));
+
+      set({
+        isAuthenticated: true,
+        token: access_token,
+        user: user,
+        loading: false,
+        error: null,
+      });
+
+      return { success: true };
+    } catch (err) {
+      const message = err.response?.data?.detail || 'Erro ao realizar login. Verifique suas credenciais.';
+      set({ loading: false, error: message });
+      return { success: false, error: message };
+    }
   },
 
-  sessions: [
-    { id: 'sess-1', device: 'Chrome / Windows 11', ip: '192.168.3.12', active: true, lastActive: 'Agora' },
-  ],
-
-  login: (email, password) => {
-    set({
-      isAuthenticated: true,
-      token: `jwt-${Date.now()}`,
-      user: {
-        id: `usr-${Date.now()}`,
-        name: email.split('@')[0],
-        email: email,
-        role: ROLES.GLOBAL_ADMIN,
-        companyId: 'comp-riual',
-        branchId: 'br-1',
-        ldapEnabled: false,
-      },
-    });
+  logout: () => {
+    localStorage.removeItem('olhovivo_token');
+    localStorage.removeItem('olhovivo_user');
+    set({ isAuthenticated: false, token: null, user: null, error: null });
   },
-
-  logout: () => set({ isAuthenticated: false, token: null, user: null }),
 
   hasPermission: (requiredRole) => {
-    // Hierarquia RBAC
     const roleHierarchy = [
       ROLES.GUEST,
       ROLES.AUDITOR,
@@ -57,7 +62,7 @@ export const useAuthStore = create((set) => ({
       ROLES.COMPANY_ADMIN,
       ROLES.GLOBAL_ADMIN,
     ];
-    const userRole = useAuthStore.getState().user?.role || ROLES.GUEST;
+    const userRole = get().user?.role || ROLES.GUEST;
     return roleHierarchy.indexOf(userRole) >= roleHierarchy.indexOf(requiredRole);
   },
 }));

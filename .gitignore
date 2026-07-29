@@ -9,20 +9,22 @@ node_modules/
 
 # Logs
 logs/
+*.log
 
 # Environment
 .env
+.env.local
+.env.production
 
 # VS Code
 .vscode/
 
-# Docker
-*.log
-
 # Dataset
 datasets/
 
-# Models
+# Models (YOLO weights)
+*.pt
+*.pt.1
 models/
 
 # Cache
@@ -36,7 +38,31 @@ vision/output/
 vision/weights/
 backend/static/output/
 
+# Frontend build
 frontend/dist/
 
+# Database
 *.sqlite3
 *.db
+*.db-journal
+
+# Archives
+*.tar.gz
+*.zip
+!frontend/**/*.zip
+
+# Junk files from terminal accidents
+tatus
+=
+CACHED
+cat
+demo
+exporting
+naming
+reading
+resolve
+resolving
+transferring
+unpacking
+[internal]
+app.routes.statistics

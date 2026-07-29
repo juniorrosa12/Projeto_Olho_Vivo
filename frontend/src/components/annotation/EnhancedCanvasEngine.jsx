@@ -33,12 +33,13 @@ export default function EnhancedCanvasEngine({
   image,
   boxes = [],
   selectedId,
-  onSelect,
+  onSelect: onSelectProp,
   onChange,
   onCommit,
 }) {
   const [img] = useImage(image);
   const [viewport, setViewport] = useState({ width: 960, height: 600 });
+  const [hasUserSelected, setHasUserSelected] = useState(false);
   const [zoom, setZoom] = useState(1.0);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isPanMode, setIsPanMode] = useState(false);
@@ -52,13 +53,19 @@ export default function EnhancedCanvasEngine({
 
   const { activeClass, toolMode, setToolMode } = useAnnotationStore();
 
-  // Resize Observer
+  // Wrapper: marca seleção deliberada do operador para ativar autoFocus
+  const onSelect = useCallback((id) => {
+    if (id) setHasUserSelected(true);
+    onSelectProp?.(id);
+  }, [onSelectProp]);
+
+  // Resize Observer — usa altura REAL do container, sem teto artificial
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
         const width = containerRef.current.clientWidth || 960;
-        const height = Math.max(450, Math.min(750, window.innerHeight - 200));
-        setViewport({ width, height });
+        const height = containerRef.current.clientHeight || 600;
+        setViewport({ width, height: Math.max(300, height - 42) });
       }
     };
     handleResize();
@@ -108,12 +115,13 @@ export default function EnhancedCanvasEngine({
     [img, viewport.width, viewport.height, getFitScale]
   );
 
+  // Foco automático SOMENTE quando o operador clica em um objeto na sidebar
   useEffect(() => {
-    if (boxes.length > 0 && img) {
-      const firstBox = boxes.find((b) => b.id === selectedId) || boxes[0];
-      autoFocusOnBox(firstBox);
+    if (hasUserSelected && selectedId && boxes.length > 0 && img) {
+      const targetBox = boxes.find((b) => b.id === selectedId);
+      if (targetBox) autoFocusOnBox(targetBox);
     }
-  }, [selectedId, img, autoFocusOnBox]);
+  }, [selectedId, hasUserSelected]);
 
   // Transformer Sync
   useEffect(() => {

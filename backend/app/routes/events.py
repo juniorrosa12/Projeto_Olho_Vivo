@@ -1,63 +1,64 @@
 from datetime import datetime
+from typing import List, Optional
 
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
-from app.database.database import SessionLocal
+from app.database.database import get_db
 from app.models.event import Event
 from app.models.track import Track
 from app.models.validation import Validation
+from app.models.dataset import Dataset
+from app.schemas.event import EventCreate, EventResponse
+
+router = APIRouter(prefix="/events", tags=["Events"])
 
 
-class Detection(BaseModel):
-    track_id: int
-    class_name: str
-    display_name: str
-    confidence: float
-    bbox: list
-    metadata: dict = {}
-
-
-class EventRequest(BaseModel):
-    event_type: str
-    filial: str
-    camera: str
-    detections: list[Detection] = []
-    metadata: dict = {}
-    snapshot: str = ""
-    video: str = ""
-    status: str = "pending"
-    timestamp: str
-
-
-router = APIRouter(
-    prefix="/events",
-    tags=["Events"],
-)
-
-
-@router.post("/")
-def receive_event(event: EventRequest):
-
-    db = SessionLocal()
-
+@router.post("/reset", status_code=status.HTTP_200_OK)
+def reset_all_events(db: Session = Depends(get_db)):
+    """Zera todos os registros de eventos, validações, tracks e datasets do banco."""
     try:
+        db.query(Validation).delete()
+        db.query(Event).delete()
+        db.query(Track).delete()
+        db.query(Dataset).delete()
+        db.commit()
+        return {
+            "status": "cleared",
+            "message": "Todos os registros de eventos, validações, tracks e datasets foram apagados com sucesso.",
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao zerar eventos do banco: {str(e)}"
+        )
 
+
+@router.post("/", status_code=status.HTTP_201_CREATED)
+def receive_event(event: EventCreate, db: Session = Depends(get_db)):
+    try:
         first = event.detections[0] if event.detections else None
+        
+        try:
+            event_dt = datetime.fromisoformat(event.timestamp)
+        except Exception:
+            event_dt = datetime.utcnow()
 
         db_event = Event(
             event_type=event.event_type,
             filial_id=event.filial,
             camera_id=event.camera,
             track_id=first.track_id if first else -1,
-            confidence=first.confidence if first else 0,
+            confidence=first.confidence if first else 0.0,
             bbox=first.bbox if first else [],
             snapshot=event.snapshot,
             video=event.video,
             status=event.status,
             roi="",
-            event_time=datetime.fromisoformat(event.timestamp),
+            event_time=event_dt,
             event_metadata=event.metadata,
         )
 
@@ -66,7 +67,6 @@ def receive_event(event: EventRequest):
         db.refresh(db_event)
 
         for detection in event.detections:
-
             db.add(
                 Validation(
                     event_id=db_event.id,
@@ -85,27 +85,60 @@ def receive_event(event: EventRequest):
             "status": "ok",
             "id": db_event.id,
         }
-
-    finally:
-
-        db.close()
-
-
-@router.get("")
-def list_events(limit: int = 10):
-
-    db = SessionLocal()
-
-    try:
-
-        events = (
-            db.query(Event)
-            .order_by(desc(Event.event_time))
-            .limit(limit)
-            .all()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao processar evento: {str(e)}"
         )
 
-        return [
+
+@router.get("", response_model=List[EventResponse])
+def list_events(limit: int = 20, db: Session = Depends(get_db)):
+    events = (
+        db.query(Event)
+        .order_by(desc(Event.event_time))
+        .limit(limit)
+        .all()
+    )
+    return events
+
+
+@router.get("/dashboard")
+def dashboard(db: Session = Depends(get_db)):
+    last = (
+        db.query(Event)
+        .order_by(desc(Event.id))
+        .limit(20)
+        .all()
+    )
+
+    people_now = db.query(Track).filter(
+        Track.object_class == "person",
+        Track.status == "active",
+    ).count()
+
+    entries = db.query(Event).filter(
+        Event.event_type == "person_enter"
+    ).count()
+
+    exits = db.query(Event).filter(
+        Event.event_type == "person_exit"
+    ).count()
+
+    phones = db.query(Event).filter(
+        Event.event_type == "cell_phone"
+    ).count()
+
+    return {
+        "people_now": people_now,
+        "entries": entries,
+        "exits": exits,
+        "phones": phones,
+        "pending": db.query(Event).filter(Event.status == "pending").count(),
+        "approved": db.query(Event).filter(Event.status == "approved").count(),
+        "rejected": db.query(Event).filter(Event.status == "rejected").count(),
+        "last_events": [
             {
                 "id": e.id,
                 "event_type": e.event_type,
@@ -116,83 +149,8 @@ def list_events(limit: int = 10):
                 "snapshot": e.snapshot,
                 "video": e.video,
                 "status": e.status,
-                "event_time": e.event_time,
+                "event_time": e.event_time.isoformat() if e.event_time else None,
             }
-            for e in events
-        ]
-
-    finally:
-
-        db.close()
-
-
-@router.get("/dashboard")
-def dashboard():
-
-    db = SessionLocal()
-
-    try:
-
-        last = (
-            db.query(Event)
-            .order_by(desc(Event.id))
-            .limit(20)
-            .all()
-        )
-
-        people_now = db.query(Track).filter(
-            Track.object_class == "person",
-            Track.status == "active",
-        ).count()
-
-        entries = db.query(Event).filter(
-            Event.event_type == "person_enter"
-        ).count()
-
-        exits = db.query(Event).filter(
-            Event.event_type == "person_exit"
-        ).count()
-
-        phones = db.query(Event).filter(
-            Event.event_type == "cell_phone"
-        ).count()
-
-        return {
-
-            "people_now": people_now,
-            "entries": entries,
-            "exits": exits,
-            "phones": phones,
-
-            "pending": db.query(Event).filter(
-                Event.status == "pending"
-            ).count(),
-
-            "approved": db.query(Event).filter(
-                Event.status == "approved"
-            ).count(),
-
-            "rejected": db.query(Event).filter(
-                Event.status == "rejected"
-            ).count(),
-
-            "last_events": [
-                {
-                    "id": e.id,
-                    "event_type": e.event_type,
-                    "track_id": e.track_id,
-                    "camera_id": e.camera_id,
-                    "filial_id": e.filial_id,
-                    "confidence": e.confidence,
-                    "snapshot": e.snapshot,
-                    "video": e.video,
-                    "status": e.status,
-                    "event_time": e.event_time,
-                }
-                for e in last
-            ],
-        }
-
-    finally:
-
-        db.close()
+            for e in last
+        ],
+    }

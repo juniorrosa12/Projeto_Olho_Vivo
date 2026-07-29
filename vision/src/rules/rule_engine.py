@@ -1,3 +1,4 @@
+from loguru import logger
 from src.analyzers.cell_phone_analyzer import CellPhoneAnalyzer
 from src.analyzers.person_analyzer import PersonAnalyzer
 from src.config.site import CAMERA, FILIAL
@@ -48,7 +49,7 @@ class RuleEngine:
                     and py2 > y1
                 )
 
-                print(
+                logger.debug(
                     f"Pessoa={person['bbox']} | "
                     f"Celular={phone['bbox']} | "
                     f"Intersect={intersects}"
@@ -65,7 +66,7 @@ class RuleEngine:
 
                 if detection:
 
-                    print(
+                    logger.debug(
                         f"📱 Celular detectado para Track {person['id']}"
                     )
 

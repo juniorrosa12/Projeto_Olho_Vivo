@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 
@@ -34,6 +35,10 @@ COLORS = {
 class YOLODetector:
 
     def __init__(self, model_name="yolo11s.pt"):
+
+        if not os.path.exists(model_name):
+            logger.error(f'Modelo {model_name} não encontrado')
+            raise FileNotFoundError(f'Modelo {model_name} não encontrado')
 
         logger.info(f"Carregando modelo {model_name}...")
 
@@ -83,13 +88,13 @@ class YOLODetector:
         confs = result.boxes.conf.cpu().tolist()
         boxes = result.boxes.xyxy.cpu().tolist()
 
-        logger.info("========== DETECÇÕES ==========")
+        logger.debug("========== DETECÇÕES ==========")
 
         for track_id, cls, conf, box in zip(ids, classes, confs, boxes):
 
             class_name = result.names[int(cls)]
 
-            logger.info(
+            logger.debug(
                 f"YOLO -> Classe='{class_name}' "
                 f"| Track={track_id} "
                 f"| Conf={conf:.2f}"
@@ -137,14 +142,14 @@ class YOLODetector:
 
             detections.append(detection)
 
-            logger.success(
+            logger.debug(
                 f"MONITORADO -> {detection}"
             )
 
-        logger.info(
+        logger.debug(
             f"Total monitorados: {len(detections)}"
         )
 
-        logger.info("==============================")
+        logger.debug("==============================")
 
         return frame, detections

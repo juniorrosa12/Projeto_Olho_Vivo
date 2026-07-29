@@ -30,10 +30,12 @@ import MapIcon from '@mui/icons-material/Map';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import NetworkCheckIcon from '@mui/icons-material/NetworkCheck';
 import AddIcon from '@mui/icons-material/Add';
+import ComputerIcon from '@mui/icons-material/Computer';
 import { useInfrastructureStore } from '../../../infrastructure/stores/useInfrastructureStore';
 import { DvrProvisioner } from '../../../services/device/DvrProvisioner';
 import OperationalTelemetryDashboard from '../../infrastructure/containers/OperationalTelemetryDashboard';
 import InteractiveOperationalMap from '../../infrastructure/containers/InteractiveOperationalMap';
+import ConnectorManagementContainer from '../../infrastructure/containers/ConnectorManagementContainer';
 
 export default function BranchesSettingsContainer() {
   const [activeTab, setActiveTab] = useState(0);
@@ -120,11 +122,11 @@ export default function BranchesSettingsContainer() {
       <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2} mb={3}>
         <Box>
           <Typography variant="h5" fontWeight={700} sx={{ color: '#F8FAFC', letterSpacing: -0.5 }}>
-            Infraestrutura Multi-Filial, DVRs & Rede Tailscale Mesh
+            Infraestrutura Multi-Filial, Connectors & DVRs de Loja
           </Typography>
 
           <Typography variant="body2" sx={{ color: '#E2E8F0', mt: 0.5, fontWeight: 500 }}>
-            Gerenciamento centralizado de filiais, conectividade VPN Tailscale, cadastro de DVRs e auto-geração de URLs RTSP
+            Gerenciamento centralizado de filiais, serviços residentes Olho Vivo Connectors, conectividade e auto-descoberta
           </Typography>
         </Box>
 
@@ -150,15 +152,19 @@ export default function BranchesSettingsContainer() {
           '& .MuiTabs-indicator': { backgroundColor: '#38BDF8', height: 3 },
         }}
       >
-        <Tab icon={<StoreIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Filiais & Redes Tailscale" />
+        <Tab icon={<ComputerIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Olho Vivo Connectors (Edge)" />
+        <Tab icon={<StoreIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Filiais & Redes" />
         <Tab icon={<RouterIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Gestão de DVRs" />
         <Tab icon={<VideocamIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Câmeras & URLs RTSP" />
         <Tab icon={<SpeedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Telemetria" />
         <Tab icon={<MapIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Mapa Operacional" />
       </Tabs>
 
-      {/* ABA 0: Filiais Tailscale (ALTO CONTRASTE DE LETRAS) */}
-      {activeTab === 0 && (
+      {/* ABA 0: Olho Vivo Connectors Edge Management */}
+      {activeTab === 0 && <ConnectorManagementContainer />}
+
+      {/* ABA 1: Filiais Tailscale */}
+      {activeTab === 1 && (
         <Grid container spacing={3}>
           {branches.map((branch) => (
             <Grid item xs={12} md={6} key={branch.id}>
@@ -197,8 +203,8 @@ export default function BranchesSettingsContainer() {
         </Grid>
       )}
 
-      {/* ABA 1: Gestão de DVRs & Teste */}
-      {activeTab === 1 && (
+      {/* ABA 2: Gestão de DVRs */}
+      {activeTab === 2 && (
         <Box>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="subtitle1" fontWeight={800} sx={{ color: '#FFFFFF' }}>
@@ -270,8 +276,8 @@ export default function BranchesSettingsContainer() {
         </Box>
       )}
 
-      {/* ABA 2: Câmeras IP & RTSP Auto */}
-      {activeTab === 2 && (
+      {/* ABA 3: Câmeras IP & RTSP Auto */}
+      {activeTab === 3 && (
         <Grid container spacing={3}>
           {cameras.map((cam) => (
             <Grid item xs={12} md={6} key={cam.id}>
@@ -303,13 +309,13 @@ export default function BranchesSettingsContainer() {
         </Grid>
       )}
 
-      {/* ABA 3: Telemetria */}
-      {activeTab === 3 && <OperationalTelemetryDashboard />}
+      {/* ABA 4: Telemetria */}
+      {activeTab === 4 && <OperationalTelemetryDashboard />}
 
-      {/* ABA 4: Mapa Operacional */}
-      {activeTab === 4 && <InteractiveOperationalMap />}
+      {/* ABA 5: Mapa Operacional */}
+      {activeTab === 5 && <InteractiveOperationalMap />}
 
-      {/* MODAL: Cadastrar / Editar DVR com alto contraste */}
+      {/* MODAL: Cadastrar / Editar DVR */}
       <Dialog
         open={openAddDvrModal}
         onClose={() => setOpenAddDvrModal(false)}
@@ -502,24 +508,6 @@ export default function BranchesSettingsContainer() {
               {provisioning ? 'Provisionando Canais...' : editingDvrId ? 'Atualizar DVR' : 'Salvar DVR'}
             </Button>
           </Stack>
-        </DialogActions>
-      </Dialog>
-
-      {/* Modal Resultado do Teste de DVR */}
-      <Dialog open={Boolean(testResult)} onClose={() => setTestResult(null)} maxWidth="xs" fullWidth PaperProps={{ sx: { bgcolor: '#0F172A', color: '#F8FAFC', borderRadius: 3 } }}>
-        <DialogTitle display="flex" alignItems="center" gap={1}>
-          <CheckCircleIcon sx={{ color: '#10B981' }} />
-          Resultado do Teste de Conexão
-        </DialogTitle>
-        <DialogContent dividers sx={{ borderColor: '#334155' }}>
-          <Stack spacing={1}>
-            <Typography variant="body2" sx={{ color: '#FFFFFF' }}>Ping Tailscale: <strong>{testResult?.pingMs} ms</strong></Typography>
-            <Typography variant="body2" sx={{ color: '#FFFFFF' }}>Serviço HTTP (Porta 80): <strong>Status 200 OK</strong></Typography>
-            <Typography variant="body2" sx={{ color: '#FFFFFF' }}>Stream RTSP (Porta 554): <strong>{testResult?.rtspStatus}</strong></Typography>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setTestResult(null)} sx={{ color: '#38BDF8', fontWeight: 700 }}>OK</Button>
         </DialogActions>
       </Dialog>
     </Box>

@@ -12,11 +12,11 @@ export const useAnnotationStore = create((set, get) => ({
   undoStack: [],
   redoStack: [],
 
-  // Helper to commit snapshot to undo stack before mutating
   commitSnapshot: () => {
     const { boxes, undoStack } = get();
     const newSnapshot = JSON.stringify(boxes);
-    const lastSnapshot = undoStack[undoStack.length - 1];
+    const lastSnapshotObj = undoStack[undoStack.length - 1];
+    const lastSnapshot = lastSnapshotObj ? JSON.stringify(lastSnapshotObj) : null;
     
     if (newSnapshot !== lastSnapshot) {
       set({

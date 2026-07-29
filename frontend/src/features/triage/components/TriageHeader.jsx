@@ -35,11 +35,23 @@ export default function TriageHeader({ event, stats }) {
 
   const isLowConfidence = event?.confidence ? Number(event.confidence) < 0.6 : false;
 
-  const eventTitle = event?.event_type === 'cell_phone' || !event?.event_type
-    ? 'DETECÇÃO DE USO DE CELULAR NO CAIXA'
-    : event.event_type.toUpperCase().replace('_', ' ');
+  const EVENT_TYPE_MAP = {
+    cell_phone: 'USO DE CELULAR NO CAIXA',
+    cellphone: 'USO DE CELULAR NO CAIXA',
+    phone: 'USO DE CELULAR NO CAIXA',
+    person: 'PRESENÇA DE PESSOA',
+    intrusion: 'INTRUSÃO / ACESSO NÃO AUTORIZADO',
+    fire: 'DETECÇÃO DE FOGO',
+    smoke: 'DETECÇÃO DE FUMAÇA',
+    violence: 'COMPORTAMENTO VIOLENTO',
+    fall: 'QUEDA DE PESSOA',
+    loitering: 'PERMANÊNCIA SUSPEITA',
+    cash_register: 'ATIVIDADE NO CAIXA',
+  };
 
-  const eventGuidance = 'Verifique se o objeto destacado é realmente um CELULAR ou se é FALSO POSITIVO (ex: Impressora / Periférico no Balcão)';
+  const eventTitle = EVENT_TYPE_MAP[event?.event_type] || (event?.event_type ? event.event_type.toUpperCase().replaceAll('_', ' ') : 'EVENTO NÃO CLASSIFICADO');
+
+  const eventGuidance = 'Avalie: o OBJETO destacado é realmente o que a IA identificou? Se NÃO, REJEITE como Falso Positivo.';
 
   return (
     <Box
@@ -184,43 +196,69 @@ export default function TriageHeader({ event, stats }) {
         </Stack>
       </Box>
 
-      {/* 2. Banner de Alto Contraste com Título Claro da Ocorrência para Julgamento */}
+      {/* 2. Banner de Alto Contraste com Título da Ocorrência — VISÍVEL E CLARO */}
       <Box
         sx={{
           px: 2,
-          py: 0.8,
-          bgcolor: 'rgba(15, 23, 42, 0.95)',
-          borderBottom: '1px solid #334155',
+          py: 1.2,
+          background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+          borderBottom: '2px solid #F59E0B',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: 2,
         }}
       >
-        <Stack direction="row" spacing={1.5} alignItems="center">
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1 }}>
           <Chip
-            icon={<ReportProblemIcon style={{ color: '#F59E0B', fontSize: 16 }} />}
-            label="AVALIAÇÃO DE EVENTO"
+            icon={<ReportProblemIcon style={{ color: '#FCD34D', fontSize: 18 }} />}
+            label="AVALIAR"
             size="small"
-            sx={{ bgcolor: 'rgba(245, 158, 11, 0.2)', color: '#FCD34D', fontWeight: 800, fontSize: '0.7rem' }}
+            sx={{
+              bgcolor: 'rgba(245, 158, 11, 0.25)',
+              color: '#FCD34D',
+              fontWeight: 900,
+              fontSize: '0.75rem',
+              border: '1px solid #F59E0B',
+              height: 28,
+            }}
           />
-          <Typography variant="subtitle2" fontWeight={800} sx={{ color: '#FFFFFF', letterSpacing: 0.2 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              color: '#FFFFFF',
+              fontWeight: 900,
+              fontSize: '1rem',
+              letterSpacing: 0.5,
+              textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+            }}
+          >
             {eventTitle}
           </Typography>
-          <Typography variant="caption" sx={{ color: '#CBD5E1', fontWeight: 600 }}>
-            ({eventGuidance})
+          <Typography
+            variant="body2"
+            sx={{
+              color: '#94A3B8',
+              fontWeight: 500,
+              fontSize: '0.8rem',
+              fontStyle: 'italic',
+            }}
+          >
+            — {eventGuidance}
           </Typography>
         </Stack>
 
         <Chip
-          icon={<SignalCellularAltIcon style={{ color: isLowConfidence ? '#EF4444' : '#10B981', fontSize: 16 }} />}
-          label={`Confiança IA: ${confidenceScore}%`}
+          icon={<SignalCellularAltIcon style={{ color: isLowConfidence ? '#EF4444' : '#10B981', fontSize: 18 }} />}
+          label={`Confiança: ${confidenceScore}%`}
           size="small"
           sx={{
             bgcolor: isLowConfidence ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
             color: isLowConfidence ? '#FCA5A5' : '#4ADE80',
             border: `1px solid ${isLowConfidence ? '#EF4444' : '#10B981'}`,
-            fontWeight: 800,
-            height: 24,
+            fontWeight: 900,
+            height: 28,
+            fontSize: '0.8rem',
           }}
         />
       </Box>

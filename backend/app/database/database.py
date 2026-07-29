@@ -1,11 +1,17 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = "sqlite:///./olhovivo.db"
+# URL Padrão: PostgreSQL definitivo conforme instrução do usuário
+DEFAULT_DB_URL = "postgresql://olhovivo:olhovivo123@postgres:5432/olhovivo"
+DATABASE_URL = os.environ.get("DATABASE_URL", DEFAULT_DB_URL)
+
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False},
+    connect_args=connect_args,
+    pool_pre_ping=True,
 )
 
 SessionLocal = sessionmaker(
@@ -18,9 +24,8 @@ Base = declarative_base()
 
 
 def get_db():
-
+    """Dependency Injection para sessões SQLAlchemy no FastAPI."""
     db = SessionLocal()
-
     try:
         yield db
     finally:
@@ -28,11 +33,14 @@ def get_db():
 
 
 def create_database():
-
+    """Garante a criação de todas as tabelas mapeadas nos models."""
     from app.models.event import Event
     from app.models.track import Track
     from app.models.validation import Validation
     from app.models.annotation import Annotation
     from app.models.dataset import Dataset
+    from app.models.roi import ROIModel
+    from app.models.user import User
+    from app.models.connector import Connector, ConnectorTelemetry, ConnectorCommand
 
     Base.metadata.create_all(bind=engine)
