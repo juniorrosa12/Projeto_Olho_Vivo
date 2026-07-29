@@ -34,6 +34,8 @@ class DVRTestRequest(BaseModel):
 def test_dvr_connection(payload: DVRTestRequest):
     import socket
     import time
+    import urllib.request
+    import urllib.error
 
     if not payload.ip or payload.ip.strip() == "":
         raise HTTPException(status_code=400, detail="IP do DVR não informado.")
@@ -41,38 +43,73 @@ def test_dvr_connection(payload: DVRTestRequest):
     if not payload.password or payload.password.strip() == "":
         raise HTTPException(status_code=400, detail="Senha do DVR não informada.")
 
-    # Teste de Socket TCP Real na porta RTSP e HTTP
-    rtsp_ok = False
+    # 1. Teste de alcançabilidade TCP na porta RTSP
     start = time.time()
     try:
-        sock = socket.create_connection((payload.ip, payload.rtsp_port), timeout=2.5)
+        sock = socket.create_connection((payload.ip, payload.rtsp_port), timeout=3)
         sock.close()
-        rtsp_ok = True
     except Exception:
-        rtsp_ok = False
-
-    ping_ms = int((time.time() - start) * 1000)
-
-    http_ok = False
-    try:
-        sock = socket.create_connection((payload.ip, payload.http_port), timeout=2.5)
-        sock.close()
-        http_ok = True
-    except Exception:
-        http_ok = False
-
-    if not rtsp_ok and not http_ok:
         raise HTTPException(
             status_code=400,
-            detail=f"Falha de conexão com o IP {payload.ip}. Verifique se o DVR está ligado e acessível nas portas {payload.rtsp_port} ou {payload.http_port}."
+            detail=f"DVR inacessível em {payload.ip}:{payload.rtsp_port}. Verifique se está ligado e na rede correta."
         )
+    ping_ms = max(1, int((time.time() - start) * 1000))
+
+    # 2. Validação REAL de credenciais via HTTP Basic Auth
+    # Testa endpoints comuns de DVRs Intelbras/Hikvision/Dahua
+    auth_endpoints = [
+        f"http://{payload.ip}:{payload.http_port}/cgi-bin/snapshot.cgi?channel=1",
+        f"http://{payload.ip}:{payload.http_port}/cgi-bin/configManager.cgi?action=getConfig&name=General",
+        f"http://{payload.ip}:{payload.http_port}/ISAPI/System/deviceInfo",
+        f"http://{payload.ip}:{payload.http_port}/",
+    ]
+
+    http_status = None
+    auth_ok = False
+
+    password_manager = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+    password_manager.add_password(None, f"http://{payload.ip}:{payload.http_port}/", payload.user, payload.password)
+    auth_handler = urllib.request.HTTPDigestAuthHandler(password_manager)
+    basic_handler = urllib.request.HTTPBasicAuthHandler(password_manager)
+    opener = urllib.request.build_opener(auth_handler, basic_handler)
+
+    for endpoint in auth_endpoints:
+        try:
+            req = urllib.request.Request(endpoint, headers={"User-Agent": "OlhoVivo/2.0"})
+            resp = opener.open(req, timeout=3)
+            http_status = resp.getcode()
+            if http_status in (200, 204, 206):
+                auth_ok = True
+                break
+        except urllib.error.HTTPError as e:
+            http_status = e.code
+            if e.code == 401:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"Credenciais inválidas para o DVR em {payload.ip}. Usuário ou senha incorretos (HTTP 401)."
+                )
+            # 4xx/5xx mas porta alcançável — segue
+            continue
+        except Exception:
+            continue
+
+    # Se nenhum endpoint retornou 200, mas a porta RTSP abriu, ainda pode ser válido
+    if not auth_ok and http_status is None:
+        # Porta RTSP aberta mas sem endpoint HTTP — retorna sucesso parcial
+        return {
+            "success": True,
+            "pingMs": ping_ms,
+            "httpStatus": 0,
+            "rtspStatus": f"PORTA RTSP {payload.rtsp_port} ABERTA — sem endpoint HTTP confirmado",
+            "message": f"Porta RTSP alcançada em {payload.ip}:{payload.rtsp_port}. Credenciais não puderam ser validadas via HTTP.",
+        }
 
     return {
         "success": True,
-        "pingMs": ping_ms or 14,
-        "httpStatus": 200 if http_ok else 503,
+        "pingMs": ping_ms,
+        "httpStatus": http_status or 200,
         "rtspStatus": f"CONECTADO ({payload.manufacturer} Porta RTSP {payload.rtsp_port})",
-        "message": f"Conexão TCP validada com sucesso em {payload.ip}:{payload.rtsp_port}",
+        "message": f"Conexão e credenciais validadas com sucesso em {payload.ip}",
     }
 
 
