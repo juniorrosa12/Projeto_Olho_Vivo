@@ -8,26 +8,20 @@ export const useHeatmapStore = create((set) => ({
   showDensityPoints: true,
 
   peopleStats: {
-    totalEntries: 2480,
-    totalExits: 2310,
-    currentOccupancy: 170,
-    peakHour: '17:00 - 18:00',
-    avgDwellTimeMinutes: '12.4 min',
+    totalEntries: 0,
+    totalExits: 0,
+    currentOccupancy: 0,
+    peakHour: 'N/A',
+    avgDwellTimeMinutes: '0 min',
   },
 
-  densityPoints: [
-    { x: 250, y: 180, val: 0.9 }, // Área dos Caixas
-    { x: 280, y: 200, val: 0.95 },
-    { x: 300, y: 190, val: 0.85 },
-    { x: 120, y: 340, val: 0.7 },  // Corredor Central
-    { x: 140, y: 350, val: 0.75 },
-    { x: 450, y: 220, val: 0.4 },  // Seção Lateral
-    { x: 480, y: 240, val: 0.45 },
-  ],
+  densityPoints: [],
 
   setSelectedCameraId: (selectedCameraId) => set({ selectedCameraId }),
   setTimeRange: (timeRange) => set({ timeRange }),
   setHeatmapOpacity: (heatmapOpacity) => set({ heatmapOpacity }),
   setHeatmapBlur: (heatmapBlur) => set({ heatmapBlur }),
   toggleDensityPoints: () => set((state) => ({ showDensityPoints: !state.showDensityPoints })),
+  setPeopleStats: (peopleStats) => set({ peopleStats }),
+  setDensityPoints: (densityPoints) => set({ densityPoints }),
 }));

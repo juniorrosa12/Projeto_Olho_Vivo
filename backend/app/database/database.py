@@ -1,4 +1,5 @@
 import os
+import time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -33,7 +34,7 @@ def get_db():
 
 
 def create_database():
-    """Garante a criação de todas as tabelas mapeadas nos models."""
+    """Garante a criação de todas as tabelas mapeadas nos models com autorrecuperação."""
     from app.models.event import Event
     from app.models.track import Track
     from app.models.validation import Validation
@@ -43,4 +44,15 @@ def create_database():
     from app.models.user import User
     from app.models.connector import Connector, ConnectorTelemetry, ConnectorCommand
 
-    Base.metadata.create_all(bind=engine)
+    max_retries = 10
+    for attempt in range(1, max_retries + 1):
+        try:
+            Base.metadata.create_all(bind=engine)
+            print("✓ Tabelas do banco de dados criadas/verificadas com sucesso.")
+            break
+        except Exception as e:
+            if attempt == max_retries:
+                print(f"❌ Erro fatal ao conectar no banco de dados após {max_retries} tentativas: {e}")
+                raise e
+            print(f"⏳ Aguardando banco de dados PostgreSQL iniciar (tentativa {attempt}/{max_retries})...")
+            time.sleep(2)

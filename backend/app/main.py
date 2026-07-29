@@ -1,6 +1,7 @@
 import os
 import time
 from collections import defaultdict
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -22,9 +23,6 @@ from app.routes.auth import router as auth_router
 from app.routes.roi import router as roi_router
 from app.routes.connector import router as connector_router
 
-# Inicializar estrutura do banco de dados (PostgreSQL/SQLAlchemy)
-create_database()
-
 
 def seed_admin_user():
     db = SessionLocal()
@@ -43,6 +41,7 @@ def seed_admin_user():
                 )
             )
             db.commit()
+            print("✓ Usuário admin semeado com sucesso (admin@olhovivo.ai).")
     except Exception as e:
         db.rollback()
         print(f"Aviso ao semear admin: {e}")
@@ -50,11 +49,23 @@ def seed_admin_user():
         db.close()
 
 
-seed_admin_user()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Inicializar banco de dados e seed de admin
+    try:
+        create_database()
+        seed_admin_user()
+    except Exception as e:
+        print(f"Erro ao inicializar banco no startup: {e}")
+    yield
+    # Shutdown
+    pass
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
+    lifespan=lifespan,
 )
 
 rate_limit_records = defaultdict(list)
@@ -85,7 +96,7 @@ async def rate_limit_middleware(request: Request, call_next):
 # CORS Seguro
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS or ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

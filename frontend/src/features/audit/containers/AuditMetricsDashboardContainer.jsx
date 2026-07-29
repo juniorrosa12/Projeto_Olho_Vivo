@@ -7,13 +7,8 @@ import {
   Stack,
   Chip,
   Avatar,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  IconButton,
   Button,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import axios from 'axios';
@@ -46,7 +41,6 @@ export default function AuditMetricsDashboardContainer() {
   const [dashboardData, setDashboardData] = useState(null);
   const [hourlyData, setHourlyData] = useState([]);
   const [recentEvents, setRecentEvents] = useState([]);
-  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const loadData = async () => {
     try {
@@ -58,43 +52,26 @@ export default function AuditMetricsDashboardContainer() {
 
       setDashboardData(dashRes.data);
       setHourlyData(
-        hourRes.data.map((item) => ({
+        (hourRes.data || []).map((item) => ({
           hora: String(item.hour).padStart(2, '0'),
-          entradas: item.entries,
-          saidas: item.exits,
+          entradas: item.entries || 0,
+          saidas: item.exits || 0,
         }))
       );
-      setRecentEvents(eventsRes.data);
+      setRecentEvents(eventsRes.data || []);
     } catch {
-      // Fallback gracioso para visualização offline
+      // Estado limpo sem dados fictícios
       setDashboardData({
-        people_now: 12,
-        entries: 2480,
-        exits: 2310,
-        phones: 3,
-        pending: 9660,
-        approved: 1256,
-        rejected: 135,
+        people_now: 0,
+        entries: 0,
+        exits: 0,
+        phones: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0,
       });
-      setHourlyData([
-        { hora: '08', entradas: 120, saidas: 80 },
-        { hora: '10', entradas: 340, saidas: 290 },
-        { hora: '12', entradas: 520, saidas: 480 },
-        { hora: '14', entradas: 410, saidas: 390 },
-        { hora: '16', entradas: 680, saidas: 610 },
-        { hora: '18', entradas: 410, saidas: 460 },
-      ]);
-      setRecentEvents([
-        {
-          id: 'evt-9660',
-          event_type: 'cell_phone',
-          event_time: new Date().toISOString(),
-          track_id: 1,
-          filial_id: 'RIUAL_027',
-          camera_id: 'CAM01',
-          snapshot: '/static/output/latest.jpg',
-        },
-      ]);
+      setHourlyData([]);
+      setRecentEvents([]);
     }
   };
 
@@ -105,15 +82,23 @@ export default function AuditMetricsDashboardContainer() {
   }, []);
 
   const kpiCards = useMemo(() => {
-    if (!dashboardData) return [];
+    const data = dashboardData || {
+      people_now: 0,
+      entries: 0,
+      exits: 0,
+      phones: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+    };
     return [
-      { key: 'people_now', label: 'Pessoas na Loja Agora', value: dashboardData.people_now ?? 0, color: '#38BDF8', badge: 'LIVE' },
-      { key: 'entries', label: 'Entradas de Clientes', value: dashboardData.entries ?? 0, color: '#10B981', badge: 'HOJE' },
-      { key: 'exits', label: 'Saídas de Clientes', value: dashboardData.exits ?? 0, color: '#F59E0B', badge: 'HOJE' },
-      { key: 'phones', label: 'Celulares no Caixa', value: dashboardData.phones ?? 0, color: '#EF4444', badge: 'ALERTA' },
-      { key: 'pending', label: 'Eventos Pendentes', value: dashboardData.pending ?? 0, color: '#F59E0B', badge: 'FILA' },
-      { key: 'approved', label: 'Validados Aprovados', value: dashboardData.approved ?? 0, color: '#10B981', badge: 'TREINO IA' },
-      { key: 'rejected', label: 'Rejeitados (Falso Positivo)', value: dashboardData.rejected ?? 0, color: '#EF4444', badge: 'AUDITORIA' },
+      { key: 'people_now', label: 'Pessoas na Loja Agora', value: data.people_now ?? 0, color: '#38BDF8', badge: 'LIVE' },
+      { key: 'entries', label: 'Entradas de Clientes', value: data.entries ?? 0, color: '#10B981', badge: 'HOJE' },
+      { key: 'exits', label: 'Saídas de Clientes', value: data.exits ?? 0, color: '#F59E0B', badge: 'HOJE' },
+      { key: 'phones', label: 'Celulares no Caixa', value: data.phones ?? 0, color: '#EF4444', badge: 'ALERTA' },
+      { key: 'pending', label: 'Eventos Pendentes', value: data.pending ?? 0, color: '#F59E0B', badge: 'FILA' },
+      { key: 'approved', label: 'Validados Aprovados', value: data.approved ?? 0, color: '#10B981', badge: 'TREINO IA' },
+      { key: 'rejected', label: 'Rejeitados (Falso Positivo)', value: data.rejected ?? 0, color: '#EF4444', badge: 'AUDITORIA' },
     ];
   }, [dashboardData]);
 
@@ -198,7 +183,7 @@ export default function AuditMetricsDashboardContainer() {
               Sincronizado continuamente com a pipeline de Visão Computacional
             </Typography>
           </Box>
-          <Chip label="ONLINE 3s" size="small" sx={{ bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#6EE7B7', fontWeight: 700 }} />
+          <Chip label="ONLINE" size="small" sx={{ bgcolor: 'rgba(16, 185, 129, 0.15)', color: '#6EE7B7', fontWeight: 700 }} />
         </Stack>
 
         <ResponsiveContainer width="100%" height={300}>
@@ -219,53 +204,59 @@ export default function AuditMetricsDashboardContainer() {
           Últimas Ocorrências em Tempo Real
         </Typography>
 
-        <Grid container spacing={2}>
-          {recentEvents.map((evt) => (
-            <Grid item xs={12} md={6} key={evt.id}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  bgcolor: '#1E293B',
-                  border: '1px solid #334155',
-                  borderRadius: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  transition: 'all 0.15s ease',
-                  '&:hover': { borderColor: '#38BDF8', bgcolor: '#243044' },
-                }}
-              >
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Avatar sx={{ bgcolor: evt.event_type === 'cell_phone' ? 'rgba(239,68,68,0.2)' : 'rgba(56,189,248,0.2)', color: evt.event_type === 'cell_phone' ? '#EF4444' : '#38BDF8' }}>
-                    {evt.event_type === 'cell_phone' ? '📱' : '👤'}
-                  </Avatar>
-                  <Box>
-                    <Stack direction="row" spacing={1} alignItems="center" mb={0.5}>
-                      <Typography fontWeight={700} sx={{ color: '#F8FAFC' }}>
-                        {evt.event_type === 'cell_phone' ? 'Uso de Celular no Caixa' : evt.event_type}
-                      </Typography>
-                      <Chip label={formatElapsed(evt.event_time)} size="small" sx={{ bgcolor: '#0F172A', color: '#38BDF8', fontSize: '0.68rem' }} />
-                    </Stack>
-                    <Typography variant="caption" sx={{ color: '#94A3B8' }}>
-                      Track #{evt.track_id} • {evt.filial_id || 'RIUAL_027'} • {evt.camera_id || 'CAM01'}
-                    </Typography>
-                  </Box>
-                </Stack>
-
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<VisibilityIcon sx={{ fontSize: 14 }} />}
-                  onClick={() => handleInspect(evt)}
-                  sx={{ color: '#38BDF8', borderColor: '#0284C7', textTransform: 'none', ml: 1 }}
+        {recentEvents.length === 0 ? (
+          <Typography variant="body2" sx={{ color: '#94A3B8', textAlign: 'center', py: 4 }}>
+            Nenhum evento capturado pelas câmeras no momento.
+          </Typography>
+        ) : (
+          <Grid container spacing={2}>
+            {recentEvents.map((evt) => (
+              <Grid item xs={12} md={6} key={evt.id}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    bgcolor: '#1E293B',
+                    border: '1px solid #334155',
+                    borderRadius: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.15s ease',
+                    '&:hover': { borderColor: '#38BDF8', bgcolor: '#243044' },
+                  }}
                 >
-                  Inspecionar
-                </Button>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Avatar sx={{ bgcolor: evt.event_type === 'cell_phone' ? 'rgba(239,68,68,0.2)' : 'rgba(56,189,248,0.2)', color: evt.event_type === 'cell_phone' ? '#EF4444' : '#38BDF8' }}>
+                      {evt.event_type === 'cell_phone' ? '📱' : '👤'}
+                    </Avatar>
+                    <Box>
+                      <Stack direction="row" spacing={1} alignItems="center" mb={0.5}>
+                        <Typography fontWeight={700} sx={{ color: '#F8FAFC' }}>
+                          {evt.event_type === 'cell_phone' ? 'Uso de Celular no Caixa' : evt.event_type}
+                        </Typography>
+                        <Chip label={formatElapsed(evt.event_time)} size="small" sx={{ bgcolor: '#0F172A', color: '#38BDF8', fontSize: '0.68rem' }} />
+                      </Stack>
+                      <Typography variant="caption" sx={{ color: '#94A3B8' }}>
+                        Track #{evt.track_id} • {evt.filial_id || 'RIUAL_027'} • {evt.camera_id || 'CAM01'}
+                      </Typography>
+                    </Box>
+                  </Stack>
+
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<VisibilityIcon sx={{ fontSize: 14 }} />}
+                    onClick={() => handleInspect(evt)}
+                    sx={{ color: '#38BDF8', borderColor: '#0284C7', textTransform: 'none', ml: 1 }}
+                  >
+                    Inspecionar
+                  </Button>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        )}
       </Paper>
     </Box>
   );
