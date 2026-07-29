@@ -22,10 +22,10 @@ logs/
 # Dataset
 datasets/
 
-# Models (YOLO weights)
+# ML Models & Weights
 *.pt
 *.pt.1
-models/
+/models/
 
 # Cache
 .cache/
