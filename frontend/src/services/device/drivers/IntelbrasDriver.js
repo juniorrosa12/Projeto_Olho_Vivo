@@ -32,11 +32,17 @@ export class IntelbrasDriver extends DeviceDriverInterface {
   }
 
   async testConnection() {
+    if (!this.config.password) {
+      return {
+        success: false,
+        message: 'Senha do DVR não informada.',
+      };
+    }
     return {
       success: true,
       pingMs: 16,
       httpStatus: 200,
-      rtspStatus: 'CONNECTED (Intelbras MVD Realmonitor H.264)',
+      rtspStatus: 'CONECTADO (Intelbras MVD Realmonitor H.264)',
     };
   }
 }

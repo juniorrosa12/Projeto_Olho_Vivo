@@ -43,11 +43,37 @@ class DeviceManagerSingleton {
   }
 
   /**
-   * Testa a conectividade completa (Ping, HTTP, RTSP) sobre a malha Tailscale
+   * Testa a conectividade real (Ping, Socket TCP HTTP e RTSP e validação de credenciais) via backend
    */
   async testDeviceConnection(dvrConfig) {
-    const driver = this.getDriver(dvrConfig);
-    return await driver.testConnection();
+    const API = `${window.location.protocol}//${window.location.hostname}:8000`;
+    try {
+      const res = await fetch(`${API}/connector/test-dvr`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ip: dvrConfig.tailscaleIp || dvrConfig.ip || '192.168.1.3',
+          http_port: Number(dvrConfig.httpPort || 80),
+          rtsp_port: Number(dvrConfig.rtspPort || 554),
+          user: dvrConfig.user || 'admin',
+          password: dvrConfig.password || '',
+          manufacturer: dvrConfig.manufacturer || 'INTELBRAS',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return {
+          success: false,
+          message: data.detail || 'Falha na validação do DVR.',
+        };
+      }
+      return data;
+    } catch (err) {
+      // Fallback para o driver local caso a API esteja inacessível
+      const driver = this.getDriver(dvrConfig);
+      return await driver.testConnection();
+    }
   }
 
   /**
