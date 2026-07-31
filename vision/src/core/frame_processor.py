@@ -63,8 +63,9 @@ class FrameProcessor:
 
             ret, frame = source.read()
 
-            if not ret:
-                break
+            if not ret or frame is None or frame.size == 0:
+                time.sleep(0.5)
+                continue
 
             frame_count += 1
 
