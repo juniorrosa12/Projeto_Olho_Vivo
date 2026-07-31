@@ -45,19 +45,23 @@ class RTSPVideoSource(VideoSource):
 
     def open(self):
         import time
-        # Configura buffer mínimo para reduzir latência no stream ao vivo
+        import os
+        # Força transporte TCP no FFmpeg/OpenCV (obrigatorio para conexoes VPN/NetBird)
+        os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
         self.cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         if not self.cap.isOpened():
             time.sleep(self.reconnect_delay)
-            self.cap = cv2.VideoCapture(self.rtsp_url)
+            self.cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
         return self.cap.isOpened()
 
     def read(self):
         ret, frame = self.cap.read()
         if not ret:
-            # Tenta reconectar automaticamente
+            # Tenta reconectar automaticamente via TCP
             import time
+            import os
+            os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
             self.cap.release()
             time.sleep(self.reconnect_delay)
             self.cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
