@@ -32,7 +32,7 @@ export class IntelbrasDriver extends DeviceDriverInterface {
   }
 
   async testConnection() {
-    if (!this.config.password) {
+    if (!this.config.password || this.config.password.trim() === '') {
       return {
         success: false,
         message: 'Senha do DVR não informada.',

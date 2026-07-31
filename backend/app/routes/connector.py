@@ -55,13 +55,12 @@ def test_dvr_connection(payload: DVRTestRequest):
         )
     ping_ms = max(1, int((time.time() - start) * 1000))
 
-    # 2. Validação REAL de credenciais via HTTP Basic Auth
-    # Testa endpoints comuns de DVRs Intelbras/Hikvision/Dahua
+    # 2. Validação REAL de credenciais via HTTP Basic/Digest Auth
+    # Testa EXCLUSIVAMENTE endpoints protegidos por senha do DVR
     auth_endpoints = [
         f"http://{payload.ip}:{payload.http_port}/cgi-bin/snapshot.cgi?channel=1",
         f"http://{payload.ip}:{payload.http_port}/cgi-bin/configManager.cgi?action=getConfig&name=General",
         f"http://{payload.ip}:{payload.http_port}/ISAPI/System/deviceInfo",
-        f"http://{payload.ip}:{payload.http_port}/",
     ]
 
     http_status = None
@@ -83,26 +82,21 @@ def test_dvr_connection(payload: DVRTestRequest):
                 break
         except urllib.error.HTTPError as e:
             http_status = e.code
-            if e.code == 401:
+            if e.code in (401, 403):
                 raise HTTPException(
                     status_code=401,
-                    detail=f"Credenciais inválidas para o DVR em {payload.ip}. Usuário ou senha incorretos (HTTP 401)."
+                    detail=f"Credenciais inválidas para o DVR em {payload.ip}. Usuário '{payload.user}' ou senha incorretos (HTTP {e.code})."
                 )
-            # 4xx/5xx mas porta alcançável — segue
             continue
         except Exception:
             continue
 
-    # Se nenhum endpoint retornou 200, mas a porta RTSP abriu, ainda pode ser válido
-    if not auth_ok and http_status is None:
-        # Porta RTSP aberta mas sem endpoint HTTP — retorna sucesso parcial
-        return {
-            "success": True,
-            "pingMs": ping_ms,
-            "httpStatus": 0,
-            "rtspStatus": f"PORTA RTSP {payload.rtsp_port} ABERTA — sem endpoint HTTP confirmado",
-            "message": f"Porta RTSP alcançada em {payload.ip}:{payload.rtsp_port}. Credenciais não puderam ser validadas via HTTP.",
-        }
+    # Se a autenticação falhou nos endpoints protegidos, rejeita o teste
+    if not auth_ok:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Falha na autenticação do DVR em {payload.ip}. Não foi possível validar o usuário/senha (HTTP {http_status or 401})."
+        )
 
     return {
         "success": True,
