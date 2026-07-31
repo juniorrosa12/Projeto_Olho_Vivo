@@ -1,6 +1,5 @@
 import os
 import time
-import base64
 from fastapi import APIRouter, Response
 from fastapi.responses import StreamingResponse
 
@@ -15,20 +14,7 @@ CANDIDATE_PATHS = [
     os.path.abspath("static/output/latest.jpg"),
 ]
 
-# Minimal valid dark JPEG standby frame (640x360) encoded in base64
-STANDBY_JPEG_BASE64 = (
-    "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP///////////////////////////////////"
-    "///////////////////////////////////////////////////wgALCAFoAoABREA"
-    "RH/xAAXAQADAQEAAAAAAAAAAAAAAAABAgME/9oACAEBAAAAAAG1UABtVAAAW1UABtVA"
-    "AAW1UABtVAAAW1UABtVAAAW1UABtVAAAW1UABtVAAAW1UABtVAAAW1UABtVAAAW1UABt"
-    "VAAAW1UABtVAAAW1UABtVAAAW1UABtVAAA//"
-)
 
-STANDBY_JPEG_BYTES = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAABAAAAAMACAYAAACW0+bAAAABHNCSVQICAgIfAhkiAAAAAlwSFlz"
-    "AAAOxAAADsQBlRckqAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAEGSURB"
-    "VGiD7cExAEADAAAMw7/5t3oGBygYsg4AAAAASUVORK5CYII="
-)
 
 # Raw 1x1 black JPEG fallback bytes
 BLACK_JPEG_BYTES = bytes([
