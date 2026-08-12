@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -7,45 +8,38 @@ from sqlalchemy import desc
 from app.database.database import get_db
 from app.models.event import Event
 from app.models.dataset import Dataset
-from app.schemas.validation import ValidationAction
+from app.schemas.validation import ValidationResponse, ValidationAction
 
 router = APIRouter(prefix="/validation", tags=["Validation"])
 
 
-@router.get("/next")
-def next_event(db: Session = Depends(get_db)):
+@router.get("/next", response_model=Optional[ValidationResponse])
+def get_next_event_for_validation(db: Session = Depends(get_db)):
     event = (
         db.query(Event)
         .filter(Event.validated == False)
-        .order_by(desc(Event.id))
+        .order_by(Event.id.asc())
         .first()
     )
 
     if not event:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nenhum evento pendente de validação",
-        )
+        return None
 
-    return {
-        "id": event.id,
-        "event_type": event.event_type,
-        "camera_id": event.camera_id,
-        "filial_id": event.filial_id,
-        "track_id": event.track_id,
-        "confidence": event.confidence,
-        "roi": event.roi,
-        "snapshot": event.snapshot,
-        "video": event.video,
-        "bbox": event.bbox,
-        "event_time": event.event_time.isoformat() if event.event_time else None,
-        "status": event.status,
-        "metadata": event.event_metadata,
-    }
+    return ValidationResponse(
+        id=event.id,
+        event_type=event.event_type,
+        track_id=event.track_id,
+        confidence=event.confidence,
+        bbox=event.bbox,
+        snapshot=event.snapshot,
+        video=event.video,
+        status=event.status,
+        event_time=event.event_time.isoformat() if event.event_time else "",
+    )
 
 
 @router.get("/stats")
-def stats(db: Session = Depends(get_db)):
+def get_validation_stats(db: Session = Depends(get_db)):
     pending = db.query(Event).filter(Event.validated == False).count()
     approved = db.query(Event).filter(Event.status == "approved").count()
     rejected = db.query(Event).filter(Event.status == "rejected").count()
@@ -61,7 +55,7 @@ def stats(db: Session = Depends(get_db)):
 
 @router.post("/{event_id}/approve")
 def approve(event_id: int, action: ValidationAction = None, db: Session = Depends(get_db)):
-    event = db.query(Event).get(event_id)
+    event = db.get(Event, event_id)
 
     if not event:
         raise HTTPException(
@@ -76,7 +70,7 @@ def approve(event_id: int, action: ValidationAction = None, db: Session = Depend
     operator_name = (action and action.operator) or "Operador"
     dataset_entry = Dataset(
         event_id=event.id,
-        hash=f"hash-app-{event.id}-{int(datetime.utcnow().timestamp())}",
+        hash=f"hash-app-{event.id}-{int(datetime.now(timezone.utc).timestamp())}",
         action="approved",
         operator=operator_name,
         roi={"raw": event.roi},
@@ -93,7 +87,7 @@ def approve(event_id: int, action: ValidationAction = None, db: Session = Depend
 
 @router.post("/{event_id}/reject")
 def reject(event_id: int, action: ValidationAction = None, db: Session = Depends(get_db)):
-    event = db.query(Event).get(event_id)
+    event = db.get(Event, event_id)
 
     if not event:
         raise HTTPException(
@@ -111,7 +105,7 @@ def reject(event_id: int, action: ValidationAction = None, db: Session = Depends
     # Persistir rejeição para aprendizado supervisionado de supressão da IA
     dataset_entry = Dataset(
         event_id=event.id,
-        hash=f"hash-rej-{event.id}-{int(datetime.utcnow().timestamp())}",
+        hash=f"hash-rej-{event.id}-{int(datetime.now(timezone.utc).timestamp())}",
         action="rejected",
         operator=operator_name,
         rejection_reason=reason,

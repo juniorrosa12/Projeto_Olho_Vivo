@@ -9,7 +9,7 @@ class BackendClient:
 
     def __init__(self):
 
-        self.base_url = os.environ.get('BACKEND_URL', 'http://backend:8000')
+        self.base_url = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 
     def send(self, event):
 

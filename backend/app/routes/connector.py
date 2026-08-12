@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -129,7 +129,7 @@ def register_connector(payload: ConnectorRegisterRequest, db: Session = Depends(
             local_ip=payload.local_ip,
             version=payload.version,
             status="ONLINE",
-            last_heartbeat=datetime.utcnow(),
+            last_heartbeat=datetime.now(timezone.utc),
         )
         db.add(connector)
     else:
@@ -142,7 +142,7 @@ def register_connector(payload: ConnectorRegisterRequest, db: Session = Depends(
         connector.local_ip = payload.local_ip
         connector.version = payload.version
         connector.status = "ONLINE"
-        connector.last_heartbeat = datetime.utcnow()
+        connector.last_heartbeat = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(connector)
@@ -165,7 +165,7 @@ def connector_heartbeat(payload: ConnectorHeartbeatRequest, db: Session = Depend
 
     connector.status = "ONLINE"
     connector.uptime_seconds = payload.uptime_seconds
-    connector.last_heartbeat = datetime.utcnow()
+    connector.last_heartbeat = datetime.now(timezone.utc)
 
     telemetry = ConnectorTelemetry(
         connector_id=payload.connector_id,
@@ -178,13 +178,13 @@ def connector_heartbeat(payload: ConnectorHeartbeatRequest, db: Session = Depend
         active_dvrs_count=payload.active_dvrs_count,
         active_cameras_count=payload.active_cameras_count,
         last_error=payload.last_error or "",
-        recorded_at=datetime.utcnow(),
+        recorded_at=datetime.now(timezone.utc),
     )
 
     db.add(telemetry)
     db.commit()
 
-    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+    return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
 @router.post("/register-infrastructure")
@@ -195,7 +195,7 @@ def sync_infrastructure(payload: InfrastructureSyncRequest, db: Session = Depend
         "registered_dvrs": len(payload.dvrs),
         "registered_cameras": len(payload.cameras),
         "connector_id": payload.connector_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -272,7 +272,7 @@ def send_remote_command(connector_id: str, payload: ConnectorCommandCreate, db: 
         command_type=payload.command_type,
         payload=payload.payload or {},
         status="PENDING",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.add(cmd)
     db.commit()
@@ -326,7 +326,7 @@ def report_command_result(
     cmd.status = payload.status
     cmd.result = payload.result or {}
     cmd.error_message = payload.error_message or ""
-    cmd.executed_at = datetime.utcnow()
+    cmd.executed_at = datetime.now(timezone.utc)
 
     db.commit()
     return {"status": "updated", "command_id": command_id}

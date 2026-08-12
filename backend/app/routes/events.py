@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -27,7 +27,7 @@ def reset_all_events(db: Session = Depends(get_db)):
         return {
             "status": "cleared",
             "message": "Todos os registros de eventos, validações, tracks e datasets foram apagados com sucesso.",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
         db.rollback()
@@ -45,7 +45,7 @@ def receive_event(event: EventCreate, db: Session = Depends(get_db)):
         try:
             event_dt = datetime.fromisoformat(event.timestamp)
         except Exception:
-            event_dt = datetime.utcnow()
+            event_dt = datetime.now(timezone.utc)
 
         db_event = Event(
             event_type=event.event_type,
