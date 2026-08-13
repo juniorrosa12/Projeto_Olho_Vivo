@@ -33,7 +33,7 @@ def create_or_update_roi(payload: ROICreate, db: Session = Depends(get_db)):
         db.refresh(existing)
         return existing
 
-    new_roi = ROIModel(**payload.dict())
+    new_roi = ROIModel(**payload.model_dump())
     db.add(new_roi)
     db.commit()
     db.refresh(new_roi)
